@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Routine, RoutineDay, RoutineExercise } from "@/lib/types";
 import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
-import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper } from "lucide-react";
+import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper, Moon, Sun, MessageSquare, Send, Loader2 } from "lucide-react";
 import WorkoutCalendar from "./WorkoutCalendar";
 import GymLoader from "@/components/ui/GymLoader";
 
@@ -29,6 +29,40 @@ export default function MemberDashboard({ gymSlug }: Props) {
   const [activeTab, setActiveTab] = useState<"home" | "exercises" | "progress" | "profile">("home");
   const [trainingStarted, setTrainingStarted] = useState(false);
   const router = useRouter();
+
+  // Theme + feedback
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [fbComment, setFbComment] = useState("");
+  const [fbSending, setFbSending] = useState(false);
+  const [fbSent, setFbSent] = useState(false);
+
+  useEffect(() => {
+    const t = (localStorage.getItem("gymos_theme") as "dark" | "light") || "dark";
+    setTheme(t === "light" ? "light" : "dark");
+  }, []);
+
+  const applyTheme = (t: "dark" | "light") => {
+    setTheme(t);
+    localStorage.setItem("gymos_theme", t);
+    document.documentElement.dataset.theme = t;
+  };
+
+  const sendFeedback = async () => {
+    if (!session || !fbComment.trim()) return;
+    setFbSending(true);
+    try {
+      await fetch("/api/member/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: session.id, comment: fbComment }),
+      });
+      setFbSent(true);
+      setFbComment("");
+      setTimeout(() => setFbSent(false), 3000);
+    } finally {
+      setFbSending(false);
+    }
+  };
 
   useEffect(() => {
     // Lazily auto-close any workout abandoned for ≥3h (no external cron needed)
@@ -521,6 +555,68 @@ export default function MemberDashboard({ gymSlug }: Props) {
               </div>
               <ChevronRight size={16} color="var(--text-muted)" />
             </button>
+
+            {/* ── Apariencia (tema) ── */}
+            <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: "16px", padding: "18px", marginBottom: "10px" }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", margin: "0 0 12px" }}>
+                Apariencia
+              </p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {([
+                  { v: "dark",  l: "Oscuro",  icon: <Moon size={16} /> },
+                  { v: "light", l: "Claro",   icon: <Sun size={16} /> },
+                ] as const).map(opt => {
+                  const active = theme === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      onClick={() => applyTheme(opt.v)}
+                      style={{
+                        flex: 1, height: "48px", borderRadius: "12px", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                        border: `1.5px solid ${active ? "var(--lime)" : "var(--border-default)"}`,
+                        background: active ? "var(--lime-dim)" : "var(--bg-elevated)",
+                        color: active ? "var(--lime)" : "var(--text-secondary)",
+                        fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px",
+                      }}
+                    >
+                      {opt.icon} {opt.l}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Feedback / sugerencias ── */}
+            <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: "16px", padding: "18px", marginBottom: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <MessageSquare size={16} color="var(--lime)" />
+                <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", margin: 0 }}>
+                  Comentarios y sugerencias
+                </p>
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 12px", lineHeight: 1.5 }}>
+                Contale a tu profesor qué te gustaría mejorar, dudas o ideas. Lo recibe directamente.
+              </p>
+              <textarea
+                rows={3}
+                placeholder="Escribí tu comentario..."
+                className="gymos-input"
+                style={{ height: "auto", resize: "none", padding: "14px 16px", lineHeight: 1.6, marginBottom: "10px" }}
+                value={fbComment}
+                onChange={e => setFbComment(e.target.value)}
+              />
+              <button
+                onClick={sendFeedback}
+                disabled={fbSending || !fbComment.trim()}
+                className="gymos-btn gymos-btn-primary gymos-btn-full"
+                style={{ height: "48px", opacity: !fbComment.trim() ? 0.5 : 1 }}
+              >
+                {fbSending ? <Loader2 size={18} style={{ animation: "spin 0.7s linear infinite" }} />
+                 : fbSent  ? <><Check size={16} strokeWidth={3} /> Enviado, ¡gracias!</>
+                 : <><Send size={16} /> Enviar comentario</>}
+              </button>
+            </div>
 
             <button
               onClick={logout}

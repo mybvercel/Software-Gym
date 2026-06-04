@@ -16,6 +16,12 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Apply saved theme before paint to avoid a flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('gymos_theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}`,
+          }}
+        />
       </head>
       <body>{children}</body>
     </html>

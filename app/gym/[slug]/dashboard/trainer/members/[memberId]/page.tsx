@@ -77,7 +77,7 @@ export default function MemberDetailPage() {
       supabase.from("routines").select("id, name, is_active, starts_at, routine_days(id, name, day_number, routine_exercises(id, sets, reps, rest_seconds, notes, exercise:exercises(name)))").eq("member_id", memberId).eq("is_active", true).maybeSingle(),
       supabase.from("body_measurements").select("*").eq("member_id", memberId).order("measured_at", { ascending: false }).limit(5),
       supabase.from("progress_logs").select("*, exercise:exercises(name)").eq("member_id", memberId).order("logged_at", { ascending: false }).limit(20),
-      supabase.from("notifications").select("body, metadata, created_at").eq("type", "session_feedback").filter("metadata->>member_id", "eq", memberId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("notifications").select("type, body, metadata, created_at").in("type", ["session_feedback", "member_feedback"]).filter("metadata->>member_id", "eq", memberId).order("created_at", { ascending: false }).limit(30),
       supabase.from("progress_logs").select("exercise_id, weight_kg, logged_at, exercise:exercises(name)").eq("member_id", memberId).not("weight_kg", "is", null).order("logged_at", { ascending: true }),
     ]);
     setMember(profileData);
@@ -311,22 +311,27 @@ export default function MemberDetailPage() {
           open={openSection === "feedback"}
           onToggle={() => setOpenSection(openSection === "feedback" ? null : "feedback")}
           icon={<MessageSquare size={16} color={T.green} />}
-          title="Cómo se sintió en las sesiones"
+          title="Comentarios y sesiones"
         >
           {feedback.length === 0 ? (
-            <p style={{ fontSize: "13px", color: T.muted, padding: "4px 0" }}>El alumno todavía no dejó comentarios de sus sesiones.</p>
+            <p style={{ fontSize: "13px", color: T.muted, padding: "4px 0" }}>El alumno todavía no dejó comentarios.</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {feedback.map((f, i) => {
                 const md = f.metadata ?? {};
+                const isGeneral = f.type === "member_feedback";
                 return (
-                  <div key={i} style={{ background: T.bg, borderRadius: "12px", padding: "12px 14px" }}>
+                  <div key={i} style={{ background: T.bg, borderRadius: "12px", padding: "12px 14px", borderLeft: isGeneral ? `3px solid ${T.green}` : "none" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: md.comment ? "8px" : 0, flexWrap: "wrap", gap: "6px" }}>
                       <span style={{ fontFamily: T.font, fontWeight: 700, fontSize: "13px", color: T.text }}>
                         {new Date(f.created_at).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
                         {md.day_name ? ` · ${md.day_name}` : ""}
                       </span>
-                      {md.mood_label && (
+                      {isGeneral ? (
+                        <span style={{ fontSize: "12px", fontWeight: 700, color: "#2563EB", background: "rgba(37,99,235,0.10)", border: "1px solid rgba(37,99,235,0.25)", borderRadius: "999px", padding: "3px 10px" }}>
+                          Sugerencia
+                        </span>
+                      ) : md.mood_label && (
                         <span style={{ fontSize: "12px", fontWeight: 700, color: T.green, background: T.greenDim, border: `1px solid ${T.greenBorder}`, borderRadius: "999px", padding: "3px 10px" }}>
                           {md.mood_label}
                         </span>

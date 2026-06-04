@@ -64,6 +64,46 @@
   --shadow-modal: 0 16px 70px rgba(0,0,0,0.8);
 }
 
+/* ============================================================
+   LIGHT THEME — applied via <html data-theme="light">
+   Member can toggle this from their profile. Overrides the same
+   tokens so every component using var(--…) flips automatically.
+   ============================================================ */
+:root[data-theme="light"] {
+  /* Accent → readable green on white (used as text & button bg) */
+  --lime: #16A34A;
+  --lime-hover: #15803D;
+  --lime-dim: rgba(22, 163, 74, 0.10);
+  --lime-glow: 0 0 24px rgba(22, 163, 74, 0.22);
+  --lime-glow-lg: 0 0 44px rgba(22, 163, 74, 0.16), 0 0 90px rgba(22, 163, 74, 0.06);
+
+  /* Surfaces */
+  --bg-root: #F4F6FA;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
+  --bg-elevated: #F1F5F9;
+  --bg-input: #F8FAFC;
+  --bg-input-focus: rgba(22, 163, 74, 0.05);
+  --bg-glass: rgba(255, 255, 255, 0.85);
+
+  /* Borders */
+  --border-subtle: rgba(15, 23, 42, 0.07);
+  --border-default: rgba(15, 23, 42, 0.12);
+  --border-hover: rgba(15, 23, 42, 0.20);
+  --border-focus: rgba(22, 163, 74, 0.55);
+
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  /* Shadows softer on light */
+  --shadow-card: 0 1px 3px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.06);
+  --shadow-elevated: 0 8px 30px rgba(15,23,42,0.12);
+  --shadow-modal: 0 16px 60px rgba(15,23,42,0.18);
+}
+
 /* ── RESETS ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
