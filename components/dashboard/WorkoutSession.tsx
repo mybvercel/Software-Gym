@@ -485,6 +485,9 @@ function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggl
             ))}
           </div>
 
+          {/* Set tracker with rest timer */}
+          <SetTracker sets={re.sets} restSeconds={re.rest_seconds} />
+
           {/* Video */}
           {ex.video_url ? (
             <ExerciseVideo videoUrl={ex.video_url} exerciseName={ex.name} />
@@ -543,6 +546,123 @@ function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggl
           {/* Log form */}
           <LogForm log={log} sets={re.sets} onChange={onLogChange} onSave={onMarkDone} isSaving={isSaving} />
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SetTracker — one circle per set + auto rest countdown
+───────────────────────────────────────────────────────────── */
+
+function SetTracker({ sets, restSeconds }: { sets: number; restSeconds: number }) {
+  const [done, setDone] = useState(0);
+  const [rest, setRest] = useState(0);          // remaining rest seconds
+  const [resting, setResting] = useState(false);
+
+  // Countdown tick
+  useEffect(() => {
+    if (!resting) return;
+    if (rest <= 0) { setResting(false); return; }
+    const t = setTimeout(() => setRest(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resting, rest]);
+
+  const tapSet = (i: number) => {
+    if (i < done) {
+      // un-mark this set and the ones after it
+      setDone(i);
+      setResting(false);
+      setRest(0);
+    } else {
+      // complete up to this set → start rest
+      setDone(i + 1);
+      setRest(restSeconds);
+      setResting(restSeconds > 0);
+    }
+  };
+
+  const skipRest = () => { setResting(false); setRest(0); };
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const allDone = done >= sets;
+  const restPct = restSeconds > 0 ? (rest / restSeconds) * 100 : 0;
+
+  return (
+    <div style={{
+      background: "var(--bg-elevated)", border: "1px solid var(--border-subtle)",
+      borderRadius: "12px", padding: "16px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>
+          Series completadas
+        </span>
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "15px", color: allDone ? "var(--lime)" : "var(--text-secondary)" }}>
+          {done}/{sets}
+        </span>
+      </div>
+
+      {/* Circles — one per set */}
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        {Array.from({ length: sets }).map((_, i) => {
+          const filled = i < done;
+          return (
+            <button
+              key={i}
+              onClick={() => tapSet(i)}
+              aria-label={`Serie ${i + 1}`}
+              style={{
+                width: "34px", height: "34px", borderRadius: "50%", flexShrink: 0,
+                cursor: "pointer", padding: 0,
+                background: filled ? "var(--lime)" : "transparent",
+                border: `2px solid ${filled ? "var(--lime)" : "var(--border-hover)"}`,
+                color: filled ? "#000" : "var(--text-muted)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "13px",
+                transition: "all 0.15s",
+                boxShadow: filled ? "0 0 10px rgba(158,255,0,0.35)" : "none",
+              }}
+            >
+              {filled ? <Check size={16} strokeWidth={3} /> : i + 1}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Rest countdown */}
+      {resting && (
+        <div style={{ marginTop: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Clock size={18} color="var(--lime)" />
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "22px", color: "var(--lime)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                {fmt(rest)}
+              </span>
+              <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>descanso</span>
+            </div>
+            <button onClick={skipRest} style={{
+              background: "var(--bg-card)", border: "1px solid var(--border-default)",
+              borderRadius: "8px", padding: "6px 12px", cursor: "pointer",
+              fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "13px", color: "var(--text-secondary)",
+            }}>
+              Saltar
+            </button>
+          </div>
+          <div style={{ height: "6px", borderRadius: "999px", background: "var(--bg-card)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${restPct}%`, background: "var(--lime)", borderRadius: "999px", transition: "width 1s linear" }} />
+          </div>
+        </div>
+      )}
+
+      {/* Finished resting / all done hints */}
+      {!resting && done > 0 && !allDone && (
+        <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "12px 0 0", fontWeight: 500 }}>
+          Descanso terminado. ¡A la siguiente serie!
+        </p>
+      )}
+      {allDone && (
+        <p style={{ fontSize: "13px", color: "var(--lime)", margin: "12px 0 0", fontWeight: 700 }}>
+          Completaste las {sets} series. Registrá tu peso abajo y marcá el ejercicio.
+        </p>
       )}
     </div>
   );
