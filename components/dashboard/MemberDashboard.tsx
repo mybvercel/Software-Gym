@@ -29,14 +29,20 @@ export default function MemberDashboard({ gymSlug }: Props) {
   const router = useRouter();
 
   useEffect(() => {
+    // Primary: read from localStorage (set by login API alongside the HttpOnly cookie)
+    // The HttpOnly cookie is validated server-side by middleware before this component loads
     const saved = localStorage.getItem("gymos_member");
     if (saved) {
-      const s = JSON.parse(saved) as MemberSession;
-      setSession(s);
-      loadData(s);
-    } else {
-      window.location.href = `/gym/${gymSlug}`;
+      try {
+        const s = JSON.parse(saved) as MemberSession;
+        setSession(s);
+        loadData(s);
+        return;
+      } catch { /* fall through */ }
     }
+    // If localStorage is missing (cleared manually), middleware already guards the route,
+    // so this path means the session cookie expired too — redirect to login
+    window.location.href = `/gym/${gymSlug}`;
   }, [gymSlug]);
 
   const loadData = async (s: MemberSession) => {
@@ -85,8 +91,10 @@ export default function MemberDashboard({ gymSlug }: Props) {
     setSelectedExercise(null);
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem("gymos_member");
+    // Expire the HttpOnly session cookie server-side
+    await fetch("/api/auth/member-logout", { method: "POST" });
     window.location.href = `/gym/${gymSlug}`;
   };
 

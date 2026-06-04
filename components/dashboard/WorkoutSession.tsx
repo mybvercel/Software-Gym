@@ -89,10 +89,14 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   /* ── Load data ── */
   useEffect(() => {
     const raw = localStorage.getItem("gymos_member");
-    if (!raw) { router.push(`/gym/${gymSlug}`); return; }
-    const s = JSON.parse(raw) as MemberSession;
-    setSession(s);
-    loadWorkout(s.id);
+    if (!raw) { router.push(`/gym/${gymSlug}/login?role=member`); return; }
+    try {
+      const s = JSON.parse(raw) as MemberSession;
+      setSession(s);
+      loadWorkout(s.id);
+    } catch {
+      router.push(`/gym/${gymSlug}/login?role=member`);
+    }
   }, [gymSlug]);
 
   const loadWorkout = async (memberId: string) => {

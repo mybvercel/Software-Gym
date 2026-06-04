@@ -85,7 +85,7 @@ export default function HealthProfileForm({ gymSlug }: { gymSlug: string }) {
   /* Load session + existing profile */
   useEffect(() => {
     const raw = localStorage.getItem("gymos_member");
-    if (!raw) { router.push(`/gym/${gymSlug}`); return; }
+    if (!raw) { router.push(`/gym/${gymSlug}/login?role=member`); return; }
     const s = JSON.parse(raw) as MemberSession;
     setSession(s);
 
