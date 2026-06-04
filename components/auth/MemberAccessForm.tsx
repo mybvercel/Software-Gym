@@ -37,7 +37,12 @@ export default function MemberAccessForm({ gymSlug }: { gymSlug: string }) {
       }
 
       localStorage.setItem("gymos_member", JSON.stringify(json.profile));
-      router.push(`/gym/${gymSlug}/dashboard/member`);
+      // Redirect to onboarding on first login, else straight to dashboard
+      if (json.needsOnboarding) {
+        router.push(`/gym/${gymSlug}/dashboard/member/onboarding`);
+      } else {
+        router.push(`/gym/${gymSlug}/dashboard/member`);
+      }
     } catch {
       setServerError("Ocurrió un error inesperado. Intentá de nuevo.");
     } finally {

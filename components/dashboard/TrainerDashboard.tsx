@@ -8,6 +8,8 @@ import { getInitials } from "@/lib/utils";
 import RoutineBuilder from "./RoutineBuilder";
 import ExerciseLibrary from "./ExerciseLibrary";
 import PaymentsPanel from "./PaymentsPanel";
+import NewMemberModal from "./NewMemberModal";
+import CSVImportModal from "./CSVImportModal";
 import {
   Home, Users, Dumbbell, Settings, LogOut,
   Search, Plus, ChevronRight, AlertCircle,
@@ -76,7 +78,9 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
   const [search,       setSearch]       = useState("");
   const [isLoading,    setIsLoading]    = useState(true);
   const [selectedMember, setSelectedMember] = useState<Profile | null>(null);
-  const [showBuilder,  setShowBuilder]  = useState(false);
+  const [showBuilder,    setShowBuilder]    = useState(false);
+  const [showNewMember,  setShowNewMember]  = useState(false);
+  const [showCSVImport,  setShowCSVImport]  = useState(false);
 
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const weekStart  = new Date(); weekStart.setDate(weekStart.getDate() - 7);
@@ -189,6 +193,24 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: T.font, display: "flex", flexDirection: "column", position: "relative" }}>
 
+      {/* ── NEW MEMBER MODAL ── */}
+      {showNewMember && (
+        <NewMemberModal
+          gymSlug={gymSlug}
+          onClose={() => setShowNewMember(false)}
+          onCreated={() => gymId ? loadMembers(gymId) : undefined}
+        />
+      )}
+
+      {/* ── CSV IMPORT MODAL ── */}
+      {showCSVImport && (
+        <CSVImportModal
+          gymSlug={gymSlug}
+          onClose={() => setShowCSVImport(false)}
+          onImported={() => gymId ? loadMembers(gymId) : undefined}
+        />
+      )}
+
       {/* ── ROUTINE BUILDER OVERLAY ── */}
       {showBuilder && selectedMember && (
         <div style={{
@@ -278,7 +300,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
                   Tus alumnos
                 </h2>
                 <button
-                  onClick={() => { /* TODO: add member modal */ }}
+                  onClick={() => setShowNewMember(true)}
                   style={{
                     display: "flex", alignItems: "center", gap: "6px",
                     padding: "8px 14px", borderRadius: "10px",
@@ -287,6 +309,12 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
                   }}
                 >
                   <Plus size={14} /> Nuevo alumno
+                </button>
+                <button
+                  onClick={() => setShowCSVImport(true)}
+                  style={{ display: "flex", alignItems: "center", gap: "5px", padding: "8px 14px", borderRadius: "10px", background: "transparent", border: `1px solid rgba(255,255,255,0.15)`, cursor: "pointer", fontFamily: T.font, fontWeight: 600, fontSize: "13px", color: "rgba(255,255,255,0.7)" }}
+                >
+                  Importar
                 </button>
               </div>
 
@@ -340,9 +368,20 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
               <h2 style={{ fontFamily: T.font, fontWeight: 800, fontSize: "20px", color: T.text, margin: 0 }}>
                 Alumnos <span style={{ fontSize: "14px", fontWeight: 500, color: T.muted }}>({filtered.length})</span>
               </h2>
-              <button style={{ display: "flex", alignItems: "center", gap: "5px", padding: "8px 14px", borderRadius: "10px", background: T.green, border: "none", cursor: "pointer", fontFamily: T.font, fontWeight: 700, fontSize: "13px", color: "#fff" }}>
-                <Plus size={14} /> Nuevo
-              </button>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={() => setShowCSVImport(true)}
+                  style={{ display: "flex", alignItems: "center", gap: "5px", padding: "8px 14px", borderRadius: "10px", background: "transparent", border: `1px solid ${T.border}`, cursor: "pointer", fontFamily: T.font, fontWeight: 600, fontSize: "13px", color: T.muted }}
+                >
+                  Importar
+                </button>
+                <button
+                  onClick={() => setShowNewMember(true)}
+                  style={{ display: "flex", alignItems: "center", gap: "5px", padding: "8px 14px", borderRadius: "10px", background: T.green, border: "none", cursor: "pointer", fontFamily: T.font, fontWeight: 700, fontSize: "13px", color: "#fff" }}
+                >
+                  <Plus size={14} /> Nuevo
+                </button>
+              </div>
             </div>
 
             <div style={{ position: "relative", marginBottom: "14px" }}>

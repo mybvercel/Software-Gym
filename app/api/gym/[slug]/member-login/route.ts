@@ -34,7 +34,7 @@ export async function POST(
     // 2. Find or create profile
     const { data: existing } = await admin
       .from("profiles")
-      .select("id, full_name, role, is_active")
+      .select("id, full_name, role, is_active, onboarding_completed")
       .eq("gym_id", gym.id)
       .eq("dni", dni.trim())
       .maybeSingle();
@@ -101,9 +101,13 @@ export async function POST(
     // 5. Set HttpOnly cookie + return profile for localStorage fallback
     const cookieValue = `${MEMBER_COOKIE}=${token}; Max-Age=${COOKIE_MAX_AGE}; Path=/; HttpOnly; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
 
+    // Check if onboarding was completed
+    const needsOnboarding = existing ? !(existing as any).onboarding_completed : true;
+
     return new Response(
       JSON.stringify({
         profile: { id: profileId, name: profileName, gym_id: gym.id, gym_slug: gym.slug, role: profileRole },
+        needsOnboarding,
       }),
       {
         status: 200,
