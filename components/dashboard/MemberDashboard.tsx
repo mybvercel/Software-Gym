@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Routine, RoutineDay, RoutineExercise } from "@/lib/types";
 import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
-import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList } from "lucide-react";
+import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper } from "lucide-react";
+import WorkoutCalendar from "./WorkoutCalendar";
 
 interface MemberSession {
   id: string;
@@ -390,7 +391,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
                     background: "rgba(46,213,115,0.08)", border: "1px solid rgba(46,213,115,0.25)",
                     marginTop: "8px",
                   }}>
-                    <div style={{ fontSize: "36px", marginBottom: "10px" }}>🎉</div>
+                    <PartyPopper size={34} color="var(--success)" strokeWidth={1.75} style={{ margin: "0 auto 10px" }} />
                     <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, color: "var(--success)", fontSize: "18px", marginBottom: "6px" }}>
                       ¡Entrenamiento completado!
                     </h3>
@@ -399,6 +400,16 @@ export default function MemberDashboard({ gymSlug }: Props) {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── CALENDAR ── */}
+            {session && (
+              <div style={{ marginTop: "24px" }}>
+                <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "18px", color: "var(--text-primary)", margin: "0 0 12px" }}>
+                  Tu calendario
+                </h2>
+                <WorkoutCalendar memberId={session.id} />
               </div>
             )}
           </div>
@@ -411,7 +422,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
               Ejercicios de hoy
             </h2>
             {exercises.length === 0 ? (
-              <EmptyState emoji="🏋️" text="No hay ejercicios asignados para hoy." />
+              <EmptyState icon={<Dumbbell size={34} color="var(--text-muted)" strokeWidth={1.5} />} text="No hay ejercicios asignados para hoy." />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {exercises
@@ -460,7 +471,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
             {measurements.length > 0 ? (
               <WeightChart data={measurements} />
             ) : (
-              <EmptyState emoji="📊" text="Aún no hay mediciones. Tu profesor las irá cargando en cada evaluación." />
+              <EmptyState icon={<TrendingUp size={34} color="var(--text-muted)" strokeWidth={1.5} />} text="Aún no hay mediciones. Tu profesor las irá cargando en cada evaluación." />
             )}
             <ProgressHistory memberId={session?.id} />
           </div>
@@ -582,13 +593,13 @@ function InfoRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   );
 }
 
-function EmptyState({ emoji, text }: { emoji: string; text: string }) {
+function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div style={{
       padding: "40px 24px", borderRadius: "20px", textAlign: "center",
       background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
     }}>
-      <div style={{ fontSize: "36px", marginBottom: "12px" }}>{emoji}</div>
+      <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>{icon}</div>
       <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>{text}</p>
     </div>
   );
@@ -610,7 +621,7 @@ function ProgressHistory({ memberId }: { memberId?: string }) {
 
   if (logs.length === 0) return (
     <div style={{ marginTop: "16px" }}>
-      <EmptyState emoji="🏃" text="Completá tu primer entrenamiento para ver el historial." />
+      <EmptyState icon={<TrendingUp size={34} color="var(--text-muted)" strokeWidth={1.5} />} text="Completá tu primer entrenamiento para ver el historial." />
     </div>
   );
 

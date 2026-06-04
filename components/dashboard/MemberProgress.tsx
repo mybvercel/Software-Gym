@@ -13,6 +13,7 @@ import {
   Scale, Activity,
 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
+import WorkoutCalendar from "./WorkoutCalendar";
 
 /* ─────────────────────────────────────── Types ── */
 
@@ -220,6 +221,16 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
       </header>
 
       <main style={{ maxWidth: "640px", margin: "0 auto", padding: "24px 16px 60px", display: "flex", flexDirection: "column", gap: "32px" }}>
+
+        {/* ══════════════════════════════════════════
+            SECCIÓN 0 — CALENDARIO DE ASISTENCIA
+        ══════════════════════════════════════════ */}
+        {session && (
+          <section>
+            <SectionTitle>Calendario de asistencia</SectionTitle>
+            <WorkoutCalendar memberId={session.id} />
+          </section>
+        )}
 
         {/* ══════════════════════════════════════════
             SECCIÓN 1 — MEDIDAS CORPORALES
