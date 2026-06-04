@@ -144,10 +144,33 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
         defaultLogs[re.id] = { weight_kg: "", reps_done: re.reps, effort: 7, notes: "" };
       });
       setLogs(defaultLogs);
+
+      // Mark this member as actively training (live count for the trainer)
+      if (exs.length > 0) markSession("start", memberId, today.name ?? "");
     } finally {
       setIsLoading(false);
     }
   };
+
+  /* ── Live "training now" marker for the trainer panel ── */
+  const markSession = (action: "start" | "end", memberId: string, dayLabel = "") => {
+    fetch("/api/member/workout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, member_id: memberId, day_name: dayLabel || undefined }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+
+  // Clear the live marker if the member leaves the workout screen
+  useEffect(() => {
+    return () => {
+      const raw = localStorage.getItem("gymos_member");
+      if (raw) {
+        try { markSession("end", (JSON.parse(raw) as MemberSession).id); } catch {}
+      }
+    };
+  }, []);
 
   /* ── Save progress ── */
   const markDone = async (re: RoutineExercise) => {
@@ -214,6 +237,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
         }),
       });
     } finally {
+      markSession("end", session.id);   // no longer training
       setSavingFeedback(false);
       setFeedbackSaved(true);
     }

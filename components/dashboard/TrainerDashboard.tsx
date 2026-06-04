@@ -81,12 +81,32 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
   const [showBuilder,    setShowBuilder]    = useState(false);
   const [showNewMember,  setShowNewMember]  = useState(false);
   const [showCSVImport,  setShowCSVImport]  = useState(false);
+  const [trainingNow,    setTrainingNow]    = useState(0);
 
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const weekStart  = new Date(); weekStart.setDate(weekStart.getDate() - 7);
 
   /* ── Load ── */
   useEffect(() => { init(); }, []);
+
+  /* Live "training now" count — refreshes every 30s */
+  useEffect(() => {
+    loadTrainingNow();
+    const t = setInterval(loadTrainingNow, 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const loadTrainingNow = async () => {
+    // Live markers created in the last 3 hours (safety window for abandoned sessions)
+    const since = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from("notifications")
+      .select("metadata")
+      .eq("type", "workout_active")
+      .gte("created_at", since);
+    const uniqueMembers = new Set((data ?? []).map((n: any) => n.metadata?.member_id).filter(Boolean));
+    setTrainingNow(uniqueMembers.size);
+  };
 
   const init = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -266,14 +286,15 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
               {/* Stat cards — horizontal scroll */}
               <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "4px", marginRight: "-20px", paddingRight: "20px" }}>
                 <StatCard
-                  label="Alumnos activos"
-                  value={isLoading ? "–" : String(activeCount)}
+                  label="Entrenando ahora"
+                  value={String(trainingNow)}
                   icon={<UserCheck size={16} />}
                   color={T.green}
                   dim={T.greenDim}
+                  live={trainingNow > 0}
                 />
                 <StatCard
-                  label="Entrenan hoy"
+                  label="Entrenaron hoy"
                   value={isLoading ? "–" : String(trainingToday)}
                   icon={<CheckCircle size={16} />}
                   color="#3B82F6"
@@ -489,16 +510,17 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
 
 /* ─────────────────────────── Sub-components ── */
 
-function StatCard({ label, value, icon, color, dim }: {
-  label: string; value: string; icon: React.ReactNode; color: string; dim: string;
+function StatCard({ label, value, icon, color, dim, live }: {
+  label: string; value: string; icon: React.ReactNode; color: string; dim: string; live?: boolean;
 }) {
   return (
     <div style={{
       flexShrink: 0, minWidth: "140px",
-      background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)",
+      background: live ? "rgba(34,197,94,0.10)" : "rgba(255,255,255,0.06)",
+      border: live ? "1px solid rgba(34,197,94,0.35)" : "1px solid rgba(255,255,255,0.08)",
       borderRadius: "14px", padding: "14px",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
         <div style={{
           width: "28px", height: "28px", borderRadius: "8px",
           background: dim, display: "flex", alignItems: "center", justifyContent: "center",
@@ -506,6 +528,12 @@ function StatCard({ label, value, icon, color, dim }: {
         }}>
           {icon}
         </div>
+        {live && (
+          <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22C55E", animation: "pulseGlow 1.6s ease-in-out infinite" }} />
+            <span style={{ fontSize: "10px", fontWeight: 700, color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.05em" }}>En vivo</span>
+          </span>
+        )}
       </div>
       <p style={{ fontFamily: T.font, fontWeight: 800, fontSize: "26px", color: "#FFFFFF", margin: "0 0 3px", lineHeight: 1 }}>
         {value}
