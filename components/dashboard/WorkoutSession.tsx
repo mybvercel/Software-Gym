@@ -117,9 +117,11 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       const days = (routine.routine_days ?? []) as any[];
       if (days.length === 0) { setIsLoading(false); return; }
 
-      const dayOfWeek = new Date().getDay();
+      // day_number = ISO weekday (1=Mon … 7=Sun). Match today; fall back to first day.
+      const jsDay = new Date().getDay();
+      const todayISO = jsDay === 0 ? 7 : jsDay;
       const sorted = [...days].sort((a, b) => a.day_number - b.day_number);
-      const today = sorted[dayOfWeek % sorted.length] ?? sorted[0];
+      const today = sorted.find(d => d.day_number === todayISO) ?? sorted[0];
 
       setDayName(today.name ?? `Día ${today.day_number}`);
 

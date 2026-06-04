@@ -61,9 +61,12 @@ export default function MemberDashboard({ gymSlug }: Props) {
         setRoutine(routineData);
         const days = routineData.routine_days ?? [];
         if (days.length > 0) {
-          const dayOfWeek = new Date().getDay();
-          const sorted = [...days].sort((a: RoutineDay, b: RoutineDay) => a.day_number - b.day_number);
-          setTodayDay(sorted[dayOfWeek % sorted.length] ?? sorted[0]);
+          // day_number stores the ISO weekday (1=Mon … 7=Sun).
+          // Show today's workout only if a training day matches today.
+          const jsDay = new Date().getDay();          // 0=Sun … 6=Sat
+          const todayISO = jsDay === 0 ? 7 : jsDay;    // 1=Mon … 7=Sun
+          const match = days.find((d: RoutineDay) => d.day_number === todayISO);
+          setTodayDay(match ?? null);                  // null → rest day
         }
       }
 
@@ -217,12 +220,28 @@ export default function MemberDashboard({ gymSlug }: Props) {
                 padding: "32px 24px", borderRadius: "20px", textAlign: "center",
                 background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
               }}>
-                <div style={{ fontSize: "40px", marginBottom: "12px" }}>📋</div>
+                <ClipboardList size={36} color="var(--text-muted)" strokeWidth={1.5} style={{ margin: "0 auto 12px" }} />
                 <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)", fontSize: "17px", marginBottom: "8px" }}>
                   Aún no tenés rutina
                 </h3>
                 <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6 }}>
-                  Tu profesor está preparando tu plan personalizado. ¡Pronto lo verás acá!
+                  Tu profesor está preparando tu plan personalizado. Pronto lo verás acá.
+                </p>
+              </div>
+            )}
+
+            {/* Rest day (routine exists but today isn't a training day) */}
+            {routine && !todayDay && (
+              <div style={{
+                padding: "32px 24px", borderRadius: "20px", textAlign: "center",
+                background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
+              }}>
+                <Clock size={36} color="var(--lime)" strokeWidth={1.5} style={{ margin: "0 auto 12px" }} />
+                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)", fontSize: "17px", marginBottom: "8px" }}>
+                  Hoy es día de descanso
+                </h3>
+                <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6 }}>
+                  Tu rutina <strong style={{ color: "var(--text-primary)" }}>{routine.name}</strong> no tiene entrenamiento para hoy. Aprovechá para recuperar.
                 </p>
               </div>
             )}

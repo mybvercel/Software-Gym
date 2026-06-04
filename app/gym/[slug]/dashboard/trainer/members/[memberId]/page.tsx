@@ -4,10 +4,16 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
+import RoutineBuilder from "@/components/dashboard/RoutineBuilder";
 import {
   ArrowLeft, ClipboardList, Dumbbell, TrendingUp,
-  CheckCircle, XCircle, Calendar, Scale, ChevronDown, ChevronUp,
+  CheckCircle, Clock, Calendar, Scale, ChevronDown, ChevronUp,
+  Plus, Pencil, X,
 } from "lucide-react";
+
+const WEEKDAY_NAMES: Record<number, string> = {
+  1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 7: "Domingo",
+};
 
 /* ─────── Design tokens (same as TrainerDashboard) ── */
 const T = {
@@ -44,6 +50,7 @@ export default function MemberDetailPage() {
   const [logs,      setLogs]      = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [openSection, setOpenSection] = useState<string | null>("health");
+  const [showBuilder, setShowBuilder] = useState(false);
 
   useEffect(() => { loadAll(); }, [memberId]);
 
@@ -58,7 +65,7 @@ export default function MemberDetailPage() {
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", memberId).single(),
       supabase.from("member_goals").select("*").eq("member_id", memberId).maybeSingle(),
-      supabase.from("routines").select("id, name, is_active, starts_at, routine_days(id, name, day_number, routine_exercises(id, sets, reps, exercise:exercises(name)))").eq("member_id", memberId).eq("is_active", true).maybeSingle(),
+      supabase.from("routines").select("id, name, is_active, starts_at, routine_days(id, name, day_number, routine_exercises(id, sets, reps, rest_seconds, notes, exercise:exercises(name)))").eq("member_id", memberId).eq("is_active", true).maybeSingle(),
       supabase.from("body_measurements").select("*").eq("member_id", memberId).order("measured_at", { ascending: false }).limit(5),
       supabase.from("progress_logs").select("*, exercise:exercises(name)").eq("member_id", memberId).order("logged_at", { ascending: false }).limit(20),
     ]);
@@ -117,9 +124,9 @@ export default function MemberDetailPage() {
               {member.is_active ? "Desactivar" : "Activar"}
             </button>
             <button
-              onClick={() => router.push(`/gym/${slug}/dashboard/trainer`)}
-              style={{ flex: 1, height: "38px", borderRadius: "10px", border: "none", background: T.green, cursor: "pointer", fontFamily: T.font, fontWeight: 700, fontSize: "13px", color: "#fff" }}>
-              Asignar rutina
+              onClick={() => setShowBuilder(true)}
+              style={{ flex: 1, height: "38px", borderRadius: "10px", border: "none", background: T.green, cursor: "pointer", fontFamily: T.font, fontWeight: 700, fontSize: "13px", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+              {routine ? <><Pencil size={14} /> Editar rutina</> : <><Plus size={14} /> Crear rutina</>}
             </button>
           </div>
         </div>
@@ -159,20 +166,49 @@ export default function MemberDetailPage() {
           title="Rutina activa"
         >
           {!routine ? (
-            <p style={{ fontSize: "13px", color: T.muted, padding: "4px 0" }}>Sin rutina asignada.</p>
+            <div style={{ textAlign: "center", padding: "12px 0" }}>
+              <p style={{ fontSize: "13px", color: T.muted, margin: "0 0 12px" }}>Este alumno todavía no tiene rutina asignada.</p>
+              <button onClick={() => setShowBuilder(true)} style={{ height: "40px", padding: "0 20px", borderRadius: "10px", background: T.green, border: "none", cursor: "pointer", color: "#fff", fontFamily: T.font, fontWeight: 700, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <Plus size={15} /> Crear rutina
+              </button>
+            </div>
           ) : (
             <div>
-              <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "15px", color: T.text, margin: "0 0 12px" }}>{routine.name}</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "15px", color: T.text, margin: 0 }}>{routine.name}</p>
+                <button onClick={() => setShowBuilder(true)} style={{ display: "flex", alignItems: "center", gap: "5px", background: T.greenDim, border: `1px solid ${T.greenBorder}`, borderRadius: "8px", padding: "5px 10px", cursor: "pointer", color: T.green, fontSize: "12px", fontWeight: 700, fontFamily: T.font }}>
+                  <Pencil size={12} /> Editar
+                </button>
+              </div>
+              {/* Weekday summary */}
+              <div style={{ display: "flex", gap: "5px", marginBottom: "14px", flexWrap: "wrap" }}>
+                {[1,2,3,4,5,6,7].map(wd => {
+                  const trains = (routine.routine_days ?? []).some((d: any) => d.day_number === wd);
+                  return (
+                    <span key={wd} style={{ width: "34px", height: "30px", borderRadius: "7px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700, fontFamily: T.font,
+                      background: trains ? T.greenDim : T.bg, color: trains ? T.green : T.light,
+                      border: `1px solid ${trains ? T.greenBorder : T.border}` }}>
+                      {["L","M","M","J","V","S","D"][wd-1]}
+                    </span>
+                  );
+                })}
+              </div>
               {(routine.routine_days ?? []).sort((a: any, b: any) => a.day_number - b.day_number).map((day: any) => (
-                <div key={day.id} style={{ marginBottom: "12px" }}>
-                  <p style={{ fontSize: "12px", fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
-                    {day.name ?? `Día ${day.day_number}`}
+                <div key={day.id} style={{ marginBottom: "14px" }}>
+                  <p style={{ fontSize: "12px", fontWeight: 700, color: T.green, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 6px" }}>
+                    {WEEKDAY_NAMES[day.day_number] ?? `Día ${day.day_number}`} — {day.name}
                   </p>
                   {(day.routine_exercises ?? []).map((re: any, i: number) => (
-                    <div key={re.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", marginBottom: "4px", background: T.bg, borderRadius: "8px" }}>
+                    <div key={re.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", marginBottom: "4px", background: T.bg, borderRadius: "8px" }}>
                       <span style={{ fontFamily: T.font, fontWeight: 700, fontSize: "12px", color: T.green, width: "18px" }}>{i + 1}</span>
-                      <p style={{ flex: 1, fontSize: "13px", color: T.text, fontWeight: 600, margin: 0 }}>{re.exercise?.name}</p>
-                      <span style={{ fontSize: "12px", color: T.muted }}>{re.sets}×{re.reps}</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: "13px", color: T.text, fontWeight: 600, margin: 0 }}>{re.exercise?.name}</p>
+                        {re.notes && <p style={{ fontSize: "11px", color: T.muted, margin: "2px 0 0" }}>{re.notes}</p>}
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ fontSize: "13px", color: T.text, fontWeight: 700, fontFamily: T.font }}>{re.sets}×{re.reps}</span>
+                        <p style={{ fontSize: "10px", color: T.muted, margin: 0 }}>{re.rest_seconds}s desc.</p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -248,6 +284,20 @@ export default function MemberDetailPage() {
           )}
         </Accordion>
       </div>
+
+      {/* ── ROUTINE BUILDER OVERLAY ── */}
+      {showBuilder && member && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+          <div style={{ width: "100%", maxWidth: "720px", height: "92vh", background: "var(--bg-card)", borderRadius: "24px 24px 0 0", border: "1px solid var(--border-subtle)", padding: "20px", display: "flex", flexDirection: "column" }}>
+            <RoutineBuilder
+              gymSlug={slug}
+              preselectedMember={member}
+              onClose={() => setShowBuilder(false)}
+              onSaved={() => loadAll()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

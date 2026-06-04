@@ -236,7 +236,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
               </button>
             </div>
             <div style={{ flex: 1, overflow: "auto", padding: "16px" }}>
-              <RoutineBuilder gymSlug={gymSlug} preselectedMember={selectedMember} onClose={() => setShowBuilder(false)} />
+              <RoutineBuilder gymSlug={gymSlug} preselectedMember={selectedMember} onClose={() => setShowBuilder(false)} onSaved={() => gymId && loadMembers(gymId)} />
             </div>
           </div>
         </div>
