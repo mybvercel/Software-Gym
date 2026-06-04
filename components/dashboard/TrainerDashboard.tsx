@@ -97,7 +97,9 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
   }, []);
 
   const loadTrainingNow = async () => {
-    // Live markers created in the last 3 hours (safety window for abandoned sessions)
+    // First auto-close any session abandoned for ≥3h, then count live ones
+    try { await fetch("/api/cron/close-stale-workouts", { method: "POST" }); } catch {}
+
     const since = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("notifications")

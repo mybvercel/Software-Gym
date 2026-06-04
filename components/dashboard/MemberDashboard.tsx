@@ -30,6 +30,9 @@ export default function MemberDashboard({ gymSlug }: Props) {
   const router = useRouter();
 
   useEffect(() => {
+    // Lazily auto-close any workout abandoned for ≥3h (no external cron needed)
+    fetch("/api/cron/close-stale-workouts", { method: "POST" }).catch(() => {});
+
     // Primary: read from localStorage (set by login API alongside the HttpOnly cookie)
     // The HttpOnly cookie is validated server-side by middleware before this component loads
     const saved = localStorage.getItem("gymos_member");

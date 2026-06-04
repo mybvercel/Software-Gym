@@ -93,6 +93,24 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   const [comment, setComment]           = useState("");
   const [savingFeedback, setSavingFeedback] = useState(false);
   const [feedbackSaved, setFeedbackSaved]   = useState(false);
+  const [autoClosed, setAutoClosed]     = useState(false);
+
+  // Auto-close the session after 3h if the member forgot to finish it
+  useEffect(() => {
+    const THREE_H = 3 * 60 * 60 * 1000;
+    const remaining = THREE_H - (Date.now() - startTime);
+    if (remaining <= 0) return;
+    const t = setTimeout(() => {
+      if (feedbackSaved) return;
+      const raw = localStorage.getItem("gymos_member");
+      const id = raw ? (JSON.parse(raw) as MemberSession).id : "";
+      if (id) markSession("end", id);
+      setAutoClosed(true);
+      setAllDone(true);
+      setFeedbackSaved(true);
+    }, remaining);
+    return () => clearTimeout(t);
+  }, [startTime, feedbackSaved]);
 
   /* ── Load data ── */
   useEffect(() => {
@@ -345,12 +363,14 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
           /* ── Farewell ── */
           <div style={{ textAlign: "center", animation: "fadeIn 0.4s ease" }}>
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(24px,6vw,30px)", color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 12px" }}>
-              ¡A descansar!
+              {autoClosed ? "Entrenamiento cerrado" : "¡A descansar!"}
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6, margin: "0 0 8px" }}>
-              Te espero en la próxima sesión.
+              {autoClosed
+                ? "Cerramos tu entrenamiento automáticamente porque pasaron 3 horas. ¡Nos vemos en la próxima!"
+                : "Te espero en la próxima sesión."}
             </p>
-            {mood || comment ? (
+            {!autoClosed && (mood || comment) ? (
               <p style={{ color: "var(--lime)", fontSize: "14px", fontWeight: 600, margin: "0 0 32px" }}>
                 Tu profe va a ver cómo te sentiste hoy.
               </p>
