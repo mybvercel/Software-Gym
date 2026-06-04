@@ -9,11 +9,12 @@ import {
 } from "recharts";
 import {
   ArrowUp, ArrowDown, Minus,
-  Plus, X, Loader2, Trophy, TrendingUp,
+  Plus, X, Loader2, TrendingUp,
   Scale, Activity,
 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 import WorkoutCalendar from "./WorkoutCalendar";
+import { buildExerciseProgress, overallInsight, type ExerciseProgress } from "@/lib/progress";
 
 /* ─────────────────────────────────────── Types ── */
 
@@ -91,7 +92,6 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
 
   const [session,      setSession]      = useState<MemberSession | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
-  const [prs,          setPRs]          = useState<PR[]>([]);
   const [expandedPR,   setExpandedPR]   = useState<string | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
 
@@ -105,6 +105,15 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
   const [isSaving,  setIsSaving]    = useState(false);
   const [saveOk,    setSaveOk]      = useState(false);
 
+  // per-exercise progression + manual weight logging
+  const [exProgress, setExProgress] = useState<ExerciseProgress[]>([]);
+  const [exercises,  setExercises]  = useState<{ id: string; name: string }[]>([]);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logEx,    setLogEx]    = useState("");
+  const [logWeight,setLogWeight]= useState("");
+  const [logReps,  setLogReps]  = useState("");
+  const [savingLog,setSavingLog]= useState(false);
+
   /* ── Load ── */
   useEffect(() => {
     const raw = localStorage.getItem("gymos_member");
@@ -116,7 +125,7 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
 
   const loadAll = async (memberId: string) => {
     setIsLoading(true);
-    const [{ data: meas }, { data: logs }] = await Promise.all([
+    const [{ data: meas }, { data: logs }, { data: exs }] = await Promise.all([
       supabase
         .from("body_measurements")
         .select("*")
@@ -128,32 +137,25 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
         .eq("member_id", memberId)
         .not("weight_kg", "is", null)
         .order("logged_at", { ascending: true }),
+      supabase
+        .from("exercises")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name"),
     ]);
 
     setMeasurements((meas as Measurement[]) ?? []);
+    setExercises((exs as { id: string; name: string }[]) ?? []);
 
-    // Build PRs grouped by exercise
-    const map: Record<string, { name: string; entries: { date: string; weight: number }[] }> = {};
-    for (const log of (logs ?? []) as any[]) {
-      const id   = log.exercise_id as string;
-      const name = (log.exercise as any)?.name ?? id;
-      if (!map[id]) map[id] = { name, entries: [] };
-      map[id].entries.push({ date: log.logged_at, weight: log.weight_kg });
-    }
-    const prList: PR[] = Object.entries(map).map(([id, { name, entries }]) => {
-      const sorted  = [...entries].sort((a, b) => b.weight - a.weight);
-      const maxW    = sorted[0].weight;
-      const maxDate = sorted.find(e => e.weight === maxW)!.date;
-      return {
-        exercise_id: id,
-        exercise_name: name,
-        max_weight: maxW,
-        achieved_at: maxDate,
-        history: entries.map(e => ({ date: fmtDate(e.date), weight: e.weight })),
-      };
-    }).sort((a, b) => b.max_weight - a.max_weight);
+    // Per-exercise weekly progression + insights (shared with trainer view)
+    const rawLogs = ((logs ?? []) as any[]).map(l => ({
+      exercise_id: l.exercise_id,
+      exercise_name: (l.exercise as any)?.name ?? l.exercise_id,
+      weight_kg: l.weight_kg,
+      logged_at: l.logged_at,
+    }));
+    setExProgress(buildExerciseProgress(rawLogs));
 
-    setPRs(prList);
     setIsLoading(false);
   };
 
@@ -173,6 +175,23 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
     setSaveOk(true);
     setFormData({});
     setTimeout(() => { setSaveOk(false); setShowModal(false); }, 1500);
+    loadAll(session.id);
+  };
+
+  /* ── Save a manual weight entry for an exercise ── */
+  const saveManualLog = async () => {
+    if (!session || !logEx || !logWeight) return;
+    setSavingLog(true);
+    await supabase.from("progress_logs").insert({
+      member_id: session.id,
+      exercise_id: logEx,
+      weight_kg: parseFloat(logWeight),
+      reps_completed: logReps || null,
+      logged_at: new Date().toISOString(),
+    });
+    setSavingLog(false);
+    setLogEx(""); setLogWeight(""); setLogReps("");
+    setShowLogModal(false);
     loadAll(session.id);
   };
 
@@ -355,87 +374,110 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
         </section>
 
         {/* ══════════════════════════════════════════
-            SECCIÓN 3 — RÉCORDS PERSONALES
+            SECCIÓN 3 — PROGRESO POR EJERCICIO (semanal)
         ══════════════════════════════════════════ */}
         <section>
-          <SectionTitle>Récords personales</SectionTitle>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+            <SectionTitle>Progreso por ejercicio</SectionTitle>
+            <button
+              onClick={() => setShowLogModal(true)}
+              className="gymos-btn gymos-btn-primary"
+              style={{ height: "40px", padding: "0 14px", fontSize: "14px" }}
+            >
+              <Plus size={16} /> Cargar peso
+            </button>
+          </div>
 
-          {prs.length === 0 ? (
+          {exProgress.length === 0 ? (
             <EmptyCard
-              icon={<Trophy size={28} color="var(--text-muted)" strokeWidth={1.5} />}
-              text="Completá entrenamientos registrando el peso para ver tus récords."
+              icon={<TrendingUp size={28} color="var(--text-muted)" strokeWidth={1.5} />}
+              text="Registrá el peso de tus ejercicios (al entrenar o con 'Cargar peso') para ver tu evolución semana a semana."
+              action={{ label: "Cargar peso", onClick: () => setShowLogModal(true) }}
             />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {prs.map((pr, i) => {
-                const isOpen = expandedPR === pr.exercise_id;
-                return (
-                  <div key={pr.exercise_id} style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: "14px", overflow: "hidden" }}>
-                    <button
-                      onClick={() => setExpandedPR(isOpen ? null : pr.exercise_id)}
-                      style={{
-                        width: "100%", display: "flex", alignItems: "center", gap: "12px",
-                        padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left",
-                      }}
-                    >
-                      {/* Trophy for top 3 */}
-                      <div style={{
-                        width: "36px", height: "36px", borderRadius: "10px", flexShrink: 0,
-                        background: i < 3 ? "rgba(245,197,24,0.12)" : "var(--bg-elevated)",
-                        border: `1px solid ${i < 3 ? "rgba(245,197,24,0.3)" : "var(--border-default)"}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        color: i === 0 ? "#F5C518" : i === 1 ? "#A8A9AD" : i === 2 ? "#CD7F32" : "var(--text-muted)",
-                      }}>
-                        {i < 3
-                          ? <Trophy size={16} strokeWidth={2} />
-                          : <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "13px", color: "var(--text-muted)" }}>{i + 1}</span>
-                        }
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px", color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {pr.exercise_name}
-                        </p>
-                        <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0" }}>
-                          {fmtDate(pr.achieved_at)}
-                        </p>
-                      </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "18px", color: "var(--lime)", margin: 0 }}>
-                          {pr.max_weight}
-                        </p>
-                        <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>kg</p>
-                      </div>
-                    </button>
+            <>
+              {/* Overall programmed conclusion */}
+              <div style={{ background: "var(--lime-dim)", border: "1px solid rgba(158,255,0,0.25)", borderRadius: "14px", padding: "14px 16px", marginBottom: "12px", display: "flex", gap: "10px", alignItems: "center" }}>
+                <TrendingUp size={18} color="var(--lime)" style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: "14px", color: "var(--text-primary)", fontWeight: 600, margin: 0, lineHeight: 1.4 }}>
+                  {overallInsight(exProgress)}
+                </p>
+              </div>
 
-                    {/* Expanded chart */}
-                    {isOpen && pr.history.length >= 2 && (
-                      <div style={{ borderTop: "1px solid var(--border-subtle)", padding: "16px" }}>
-                        <p style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 12px" }}>
-                          Evolución del peso
-                        </p>
-                        <ResponsiveContainer width="100%" height={150}>
-                          <LineChart data={pr.history} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                            <XAxis dataKey="date" tick={{ fill: "var(--text-muted)", fontSize: 10 }} tickLine={false} axisLine={false} />
-                            <YAxis tick={{ fill: "var(--text-muted)", fontSize: 10 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-                            <Tooltip
-                              contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-default)", borderRadius: "10px", fontSize: "12px", color: "var(--text-primary)" }}
-                              formatter={(v) => [`${v} kg`, "Peso"]}
-                            />
-                            <Line type="monotone" dataKey="weight" stroke="var(--lime)" strokeWidth={2} dot={{ fill: "var(--lime)", r: 3 }} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                    {isOpen && pr.history.length < 2 && (
-                      <p style={{ padding: "12px 16px", fontSize: "13px", color: "var(--text-muted)", borderTop: "1px solid var(--border-subtle)" }}>
-                        Necesitás más sesiones registradas para ver la evolución.
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {exProgress.map((ex) => {
+                  const isOpen = expandedPR === ex.exercise_id;
+                  const trendColor = ex.trend === "up" ? "var(--success)" : ex.trend === "down" ? "var(--danger)" : "var(--text-muted)";
+                  return (
+                    <div key={ex.exercise_id} style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: "14px", overflow: "hidden" }}>
+                      <button
+                        onClick={() => setExpandedPR(isOpen ? null : ex.exercise_id)}
+                        style={{ width: "100%", display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ex.exercise_name}
+                          </p>
+                          <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "3px 0 0" }}>
+                            {ex.first} kg → {ex.last} kg · {ex.weeks} {ex.weeks === 1 ? "semana" : "semanas"}
+                          </p>
+                        </div>
+                        {ex.weeks >= 2 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                            {ex.trend === "up" ? <ArrowUp size={14} color={trendColor} /> : ex.trend === "down" ? <ArrowDown size={14} color={trendColor} /> : <Minus size={14} color={trendColor} />}
+                            <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "15px", color: trendColor }}>
+                              {ex.deltaKg > 0 ? "+" : ""}{ex.deltaKg}kg
+                            </span>
+                          </div>
+                        )}
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "18px", color: "var(--lime)", margin: 0 }}>{ex.max}</p>
+                          <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>máx kg</p>
+                        </div>
+                      </button>
+
+                      {isOpen && (
+                        <div style={{ borderTop: "1px solid var(--border-subtle)", padding: "16px" }}>
+                          {/* Programmed conclusion */}
+                          <div style={{ background: "var(--bg-elevated)", borderRadius: "10px", padding: "10px 12px", marginBottom: "14px" }}>
+                            <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>{ex.insight}</p>
+                          </div>
+
+                          {ex.points.length >= 2 ? (
+                            <ResponsiveContainer width="100%" height={160}>
+                              <LineChart data={ex.points} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                <XAxis dataKey="label" tick={{ fill: "var(--text-muted)", fontSize: 11 }} tickLine={false} axisLine={false} />
+                                <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} unit="" />
+                                <Tooltip
+                                  contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-default)", borderRadius: "10px", fontSize: "12px", color: "var(--text-primary)" }}
+                                  formatter={(v) => [`${v} kg`, "Peso"]}
+                                />
+                                <Line type="monotone" dataKey="weight" stroke="var(--lime)" strokeWidth={2.5} dot={{ fill: "var(--lime)", r: 4 }} label={{ position: "top", fontSize: 11, fill: "var(--text-secondary)" }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0 }}>
+                              Cargá el peso en otra semana para ver la evolución en el gráfico.
+                            </p>
+                          )}
+
+                          {/* Weekly breakdown list */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "14px" }}>
+                            {ex.points.map((p) => (
+                              <div key={p.week} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--bg-elevated)", borderRadius: "8px" }}>
+                                <span style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 600 }}>{p.label}</span>
+                                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px", color: "var(--lime)" }}>{p.weight} kg</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </section>
       </main>
@@ -495,6 +537,59 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
               style={{ letterSpacing: "0.04em", textTransform: "uppercase" }}
             >
               {isSaving ? <Loader2 size={18} style={{ animation: "spin 0.7s linear infinite" }} /> : saveOk ? "Guardado" : "Guardar medidas"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          MODAL — Cargar peso de un ejercicio
+      ══════════════════════════════════════════ */}
+      {showLogModal && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowLogModal(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+        >
+          <div style={{ width: "100%", maxWidth: "560px", background: "var(--bg-elevated)", borderRadius: "24px 24px 0 0", border: "1px solid var(--border-default)", maxHeight: "88vh", overflowY: "auto", padding: "24px 20px 40px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "18px", color: "var(--text-primary)", margin: 0 }}>
+                Cargar peso
+              </h3>
+              <button onClick={() => setShowLogModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex" }}>
+                <X size={20} />
+              </button>
+            </div>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "0 0 20px", lineHeight: 1.5 }}>
+              Registrá cuánto levantaste en un ejercicio. Se suma a tu evolución semanal.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px" }}>
+              <div>
+                <label className="gymos-label">Ejercicio</label>
+                <select className="gymos-select" value={logEx} onChange={e => setLogEx(e.target.value)}>
+                  <option value="">Elegí un ejercicio</option>
+                  {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label className="gymos-label">Peso (kg)</label>
+                  <input type="number" step="0.5" min="0" placeholder="Ej: 70" className="gymos-input" style={{ height: "52px" }} value={logWeight} onChange={e => setLogWeight(e.target.value)} />
+                </div>
+                <div>
+                  <label className="gymos-label">Reps (opcional)</label>
+                  <input type="text" placeholder="Ej: 10" className="gymos-input" style={{ height: "52px" }} value={logReps} onChange={e => setLogReps(e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={saveManualLog}
+              disabled={savingLog || !logEx || !logWeight}
+              className="gymos-btn gymos-btn-primary gymos-btn-full"
+              style={{ letterSpacing: "0.04em", textTransform: "uppercase", opacity: (!logEx || !logWeight) ? 0.5 : 1 }}
+            >
+              {savingLog ? <Loader2 size={18} style={{ animation: "spin 0.7s linear infinite" }} /> : "Guardar peso"}
             </button>
           </div>
         </div>

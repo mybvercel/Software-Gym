@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
 import RoutineBuilder from "@/components/dashboard/RoutineBuilder";
 import BackButton from "@/components/ui/BackButton";
+import { buildExerciseProgress, overallInsight, type ExerciseProgress } from "@/lib/progress";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
   ClipboardList, Dumbbell, TrendingUp,
   CheckCircle, Clock, Calendar, Scale, ChevronDown, ChevronUp,
-  Plus, Pencil, X, MessageSquare,
+  Plus, Pencil, X, MessageSquare, ArrowUp, ArrowDown, Minus,
 } from "lucide-react";
 
 const WEEKDAY_NAMES: Record<number, string> = {
@@ -50,6 +52,8 @@ export default function MemberDetailPage() {
   const [measures,  setMeasures]  = useState<any[]>([]);
   const [logs,      setLogs]      = useState<any[]>([]);
   const [feedback,  setFeedback]  = useState<any[]>([]);
+  const [exProgress, setExProgress] = useState<ExerciseProgress[]>([]);
+  const [openEx,    setOpenEx]    = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [openSection, setOpenSection] = useState<string | null>("health");
   const [showBuilder, setShowBuilder] = useState(false);
@@ -65,6 +69,7 @@ export default function MemberDetailPage() {
       { data: measuresData },
       { data: logsData },
       { data: feedbackData },
+      { data: progressData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", memberId).single(),
       supabase.from("member_goals").select("*").eq("member_id", memberId).maybeSingle(),
@@ -72,11 +77,21 @@ export default function MemberDetailPage() {
       supabase.from("body_measurements").select("*").eq("member_id", memberId).order("measured_at", { ascending: false }).limit(5),
       supabase.from("progress_logs").select("*, exercise:exercises(name)").eq("member_id", memberId).order("logged_at", { ascending: false }).limit(20),
       supabase.from("notifications").select("body, metadata, created_at").eq("type", "session_feedback").filter("metadata->>member_id", "eq", memberId).order("created_at", { ascending: false }).limit(20),
+      supabase.from("progress_logs").select("exercise_id, weight_kg, logged_at, exercise:exercises(name)").eq("member_id", memberId).not("weight_kg", "is", null).order("logged_at", { ascending: true }),
     ]);
     setMember(profileData);
     setHealth(healthData);
     setRoutine(routineData);
     setFeedback(feedbackData ?? []);
+
+    // Per-exercise weekly progression (same engine the member sees)
+    const rawLogs = ((progressData ?? []) as any[]).map(l => ({
+      exercise_id: l.exercise_id,
+      exercise_name: (l.exercise as any)?.name ?? l.exercise_id,
+      weight_kg: l.weight_kg,
+      logged_at: l.logged_at,
+    }));
+    setExProgress(buildExerciseProgress(rawLogs));
     setMeasures(measuresData ?? []);
     setLogs(logsData ?? []);
     setIsLoading(false);
@@ -329,6 +344,64 @@ export default function MemberDetailPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </Accordion>
+
+        {/* PROGRESO POR EJERCICIO */}
+        <Accordion
+          id="exprogress"
+          open={openSection === "exprogress"}
+          onToggle={() => setOpenSection(openSection === "exprogress" ? null : "exprogress")}
+          icon={<TrendingUp size={16} color={T.green} />}
+          title="Progreso por ejercicio"
+        >
+          {exProgress.length === 0 ? (
+            <p style={{ fontSize: "13px", color: T.muted, padding: "4px 0" }}>Todavía no hay cargas registradas.</p>
+          ) : (
+            <div>
+              <div style={{ background: T.greenDim, border: `1px solid ${T.greenBorder}`, borderRadius: "10px", padding: "10px 12px", marginBottom: "12px" }}>
+                <p style={{ fontSize: "13px", color: T.text, fontWeight: 600, margin: 0 }}>{overallInsight(exProgress)}</p>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {exProgress.map(ex => {
+                  const isOpen = openEx === ex.exercise_id;
+                  const tc = ex.trend === "up" ? T.green : ex.trend === "down" ? T.red : T.muted;
+                  return (
+                    <div key={ex.exercise_id} style={{ background: T.bg, borderRadius: "12px", overflow: "hidden" }}>
+                      <button onClick={() => setOpenEx(isOpen ? null : ex.exercise_id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: "10px", padding: "12px 14px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "14px", color: T.text, margin: 0 }}>{ex.exercise_name}</p>
+                          <p style={{ fontSize: "12px", color: T.muted, margin: "2px 0 0" }}>{ex.first} → {ex.last} kg · {ex.weeks} sem · máx {ex.max}kg</p>
+                        </div>
+                        {ex.weeks >= 2 && (
+                          <span style={{ display: "flex", alignItems: "center", gap: "3px", color: tc, fontFamily: T.font, fontWeight: 800, fontSize: "14px" }}>
+                            {ex.trend === "up" ? <ArrowUp size={13} /> : ex.trend === "down" ? <ArrowDown size={13} /> : <Minus size={13} />}
+                            {ex.deltaKg > 0 ? "+" : ""}{ex.deltaKg}
+                          </span>
+                        )}
+                        {isOpen ? <ChevronUp size={15} color={T.light} /> : <ChevronDown size={15} color={T.light} />}
+                      </button>
+                      {isOpen && (
+                        <div style={{ padding: "0 14px 14px" }}>
+                          <p style={{ fontSize: "13px", color: T.muted, margin: "0 0 12px", lineHeight: 1.5 }}>{ex.insight}</p>
+                          {ex.points.length >= 2 && (
+                            <ResponsiveContainer width="100%" height={150}>
+                              <LineChart data={ex.points} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
+                                <XAxis dataKey="label" tick={{ fill: T.muted, fontSize: 11 }} tickLine={false} axisLine={false} />
+                                <YAxis tick={{ fill: T.muted, fontSize: 11 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
+                                <Tooltip contentStyle={{ background: "#fff", border: `1px solid ${T.border}`, borderRadius: "10px", fontSize: "12px", color: T.text }} formatter={(v) => [`${v} kg`, "Peso"]} />
+                                <Line type="monotone" dataKey="weight" stroke={T.green} strokeWidth={2.5} dot={{ fill: T.green, r: 4 }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </Accordion>
