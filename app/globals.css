@@ -1,26 +1,579 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   GYMOS — PREMIUM DESIGN SYSTEM v2
+   Dark Mode · Neon Accents · Glassmorphism · Micro-animations
+   ============================================================ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── BRAND ── */
+  --lime: #9EFF00;
+  --lime-hover: #B8FF4A;
+  --lime-dim: rgba(158, 255, 0, 0.10);
+  --lime-glow: 0 0 30px rgba(158, 255, 0, 0.35);
+  --lime-glow-lg: 0 0 60px rgba(158, 255, 0, 0.2), 0 0 120px rgba(158, 255, 0, 0.06);
+
+  --cyan: #00D4FF;
+  --cyan-dim: rgba(0, 212, 255, 0.10);
+  --cyan-glow: 0 0 30px rgba(0, 212, 255, 0.3);
+
+  --danger: #FF4757;
+  --warning: #FFA502;
+  --success: #2ED573;
+
+  /* ── SURFACES ── */
+  --bg-root: #06080E;
+  --bg-card: #0D1117;
+  --bg-card-hover: #111827;
+  --bg-elevated: #151C28;
+  --bg-input: rgba(255, 255, 255, 0.03);
+  --bg-input-focus: rgba(158, 255, 0, 0.04);
+  --bg-glass: rgba(13, 17, 23, 0.80);
+
+  /* ── BORDERS ── */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --border-focus: rgba(158, 255, 0, 0.5);
+
+  /* ── TEXT ── */
+  --text-primary: #F0F6FC;
+  --text-secondary: #8B949E;
+  --text-muted: #484F58;
+  --text-inverse: #06080E;
+
+  /* ── FONTS ── */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* ── RADII ── */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-2xl: 32px;
+  --r-full: 9999px;
+
+  /* ── SHADOWS ── */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.3);
+  --shadow-elevated: 0 8px 40px rgba(0,0,0,0.6);
+  --shadow-modal: 0 16px 70px rgba(0,0,0,0.8);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ── RESETS ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  background: var(--bg-root);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--r-full); }
+
+/* ============================================================
+   INPUT SYSTEM
+   ============================================================ */
+
+.gymos-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gymos-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.gymos-input:hover {
+  border-color: var(--border-hover);
+  background: rgba(255,255,255,0.04);
+}
+
+.gymos-input:focus {
+  border-color: var(--border-focus);
+  background: var(--bg-input-focus);
+  box-shadow: 0 0 0 3px rgba(158, 255, 0, 0.08), var(--lime-glow);
+}
+
+.gymos-input.error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.1);
+}
+
+.gymos-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.gymos-error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.gymos-select {
+  width: 100%;
+  height: 52px;
+  padding: 0 40px 0 16px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%238B949E' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.gymos-select:hover { border-color: var(--border-hover); }
+.gymos-select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(158, 255, 0, 0.08);
+}
+.gymos-select option { background: var(--bg-elevated); color: var(--text-primary); }
+
+/* ============================================================
+   BUTTON SYSTEM
+   ============================================================ */
+
+.gymos-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.gymos-btn-primary {
+  height: 56px;
+  padding: 0 32px;
+  background: var(--lime);
+  color: var(--text-inverse);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: var(--lime-glow);
+}
+
+.gymos-btn-primary:hover {
+  background: var(--lime-hover);
+  box-shadow: 0 0 50px rgba(158, 255, 0, 0.5), 0 4px 20px rgba(158, 255, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.gymos-btn-primary:active { transform: translateY(0); }
+
+.gymos-btn-secondary {
+  height: 48px;
+  padding: 0 24px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-default);
+}
+
+.gymos-btn-secondary:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.gymos-btn-ghost {
+  height: 40px;
+  padding: 0 16px;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.gymos-btn-ghost:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.gymos-btn-full { width: 100%; }
+.gymos-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+.gymos-btn-danger {
+  height: 48px;
+  padding: 0 24px;
+  background: rgba(255, 71, 87, 0.12);
+  color: var(--danger);
+  border: 1.5px solid rgba(255, 71, 87, 0.2);
+}
+
+.gymos-btn-danger:hover { background: rgba(255, 71, 87, 0.2); }
+
+/* ============================================================
+   BADGE SYSTEM
+   ============================================================ */
+
+.gymos-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gymos-badge-success { background: rgba(46, 213, 115, 0.12); color: var(--success); border: 1px solid rgba(46, 213, 115, 0.2); }
+.gymos-badge-warning { background: rgba(255, 165, 2, 0.12); color: var(--warning); border: 1px solid rgba(255, 165, 2, 0.2); }
+.gymos-badge-danger  { background: rgba(255, 71, 87, 0.12); color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.2); }
+.gymos-badge-lime    { background: var(--lime-dim); color: var(--lime); border: 1px solid rgba(158, 255, 0, 0.2); }
+.gymos-badge-neutral { background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
+
+/* ============================================================
+   CARD SYSTEM
+   ============================================================ */
+
+.gymos-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gymos-card-interactive:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.gymos-card-glow:hover {
+  border-color: rgba(158, 255, 0, 0.2);
+  box-shadow: var(--lime-glow-lg);
+  transform: translateY(-3px);
+}
+
+.gymos-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* ============================================================
+   STAT CARD
+   ============================================================ */
+
+.gymos-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gymos-stat:hover {
+  border-color: rgba(158, 255, 0, 0.15);
+  box-shadow: var(--lime-glow-lg);
+  transform: translateY(-3px);
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(158, 255, 0, 0.15); }
+  50%      { box-shadow: 0 0 40px rgba(158, 255, 0, 0.4); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.anim-fade-up   { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.anim-fade-in   { animation: fadeIn 0.4s ease forwards; }
+.anim-scale-in  { animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.anim-pulse     { animation: pulseGlow 2.5s ease-in-out infinite; }
+.anim-float     { animation: float 4s ease-in-out infinite; }
+
+.anim-delay-1 { animation-delay: 0.08s; opacity: 0; }
+.anim-delay-2 { animation-delay: 0.16s; opacity: 0; }
+.anim-delay-3 { animation-delay: 0.24s; opacity: 0; }
+.anim-delay-4 { animation-delay: 0.32s; opacity: 0; }
+.anim-delay-5 { animation-delay: 0.4s; opacity: 0; }
+
+/* ============================================================
+   TEXT GRADIENT
+   ============================================================ */
+
+.text-gradient-lime {
+  background: linear-gradient(135deg, var(--lime) 0%, #70FF00 50%, var(--cyan) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease infinite;
+}
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+
+.gymos-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--border-default);
+  border-top-color: var(--lime);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.gymos-spinner-lg {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--border-default);
+  border-top-color: var(--lime);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ============================================================
+   DIVIDERS & UTILITIES
+   ============================================================ */
+
+.gymos-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.gymos-link {
+  color: var(--lime);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.gymos-link:hover { color: var(--lime-hover); text-decoration: underline; }
+
+/* ============================================================
+   COMPAT ALIASES — used by RoutineBuilder, ExerciseLibrary legacy
+   ============================================================ */
+
+.form-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  outline: none;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+.form-input:focus { border-color: var(--border-focus); background: var(--bg-input-focus); }
+.form-input::placeholder { color: var(--text-muted); }
+
+.form-select {
+  width: 100%;
+  height: 52px;
+  padding: 0 40px 0 16px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  transition: all 0.25s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%238B949E' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  box-sizing: border-box;
+}
+.form-select:focus { border-color: var(--border-focus); }
+.form-select option { background: var(--bg-elevated); color: var(--text-primary); }
+
+.form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  padding: 0 20px;
+  height: 44px;
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary { background: var(--lime); color: #000; box-shadow: var(--lime-glow); }
+.btn-primary:hover:not(:disabled) { background: var(--lime-hover); transform: translateY(-1px); }
+
+.btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1.5px solid var(--border-default); }
+.btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.10); border-color: var(--border-hover); }
+
+.btn-danger { background: rgba(255,71,87,0.12); color: var(--danger); border: 1.5px solid rgba(255,71,87,0.2); }
+.btn-danger:hover:not(:disabled) { background: rgba(255,71,87,0.2); }
+
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+
+.btn-sm { height: 34px; padding: 0 12px; font-size: 0.8125rem; }
+.btn-lg { height: 56px; padding: 0 32px; font-size: 1rem; }
+.btn-full { width: 100%; }
+
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--border-default);
+  border-top-color: var(--lime);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+.stat-card:hover { border-color: rgba(158,255,0,0.15); box-shadow: var(--lime-glow-lg); transform: translateY(-2px); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.badge-primary { background: var(--lime-dim); color: var(--lime); border: 1px solid rgba(158,255,0,0.2); }
+.badge-success { background: rgba(46,213,115,0.12); color: var(--success); border: 1px solid rgba(46,213,115,0.2); }
+.badge-warning { background: rgba(255,165,2,0.12); color: var(--warning); border: 1px solid rgba(255,165,2,0.2); }
+.badge-danger  { background: rgba(255,71,87,0.12);  color: var(--danger);  border: 1px solid rgba(255,71,87,0.2); }
+.badge-neutral { background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-subtle); }
+
+.animate-fade-in { animation: fadeIn 0.4s ease forwards; }
+.animate-fade-in-up { animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-pulse-glow { animation: pulseGlow 2.5s ease-in-out infinite; }
+
+/* color vars used by legacy components */
+:root {
+  --color-primary: var(--lime);
+  --color-primary-dim: var(--lime-dim);
+  --border-primary: rgba(158,255,0,0.25);
+  --color-success: #2ED573;
+  --color-warning: #FFA502;
+  --color-danger: var(--danger);
+  --color-accent: #60A5FA;
+  --bg-app: var(--bg-root);
+  --bg-primary: var(--bg-card);
+  --bg-secondary: var(--bg-elevated);
+  --bg-glass-light: rgba(255,255,255,0.05);
+  --text-tertiary: var(--text-muted);
+  --radius-md: var(--r-md);
 }
