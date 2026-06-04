@@ -1,8 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
+import { readFileSync } from 'node:fs'
+
+// Load credentials from .env.local (never hardcode secrets)
+const env = Object.fromEntries(
+  readFileSync(new URL('../../.env.local', import.meta.url), 'utf8')
+    .split('\n')
+    .filter(l => l.includes('=') && !l.trim().startsWith('#'))
+    .map(l => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
+)
 
 const supabase = createClient(
-  'https://xquvzgwxpqfxtnyzdixb.supabase.co',
-  'REMOVED_FROM_HISTORY'
+  env.NEXT_PUBLIC_SUPABASE_URL,
+  env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 const exercises = [
@@ -55,11 +64,15 @@ const exercises = [
   { name: "Thruster con mancuernas", muscle_group: "full_body", equipment: "dumbbell", difficulty: "intermediate", video_url: null, instructions: ["Sentadilla completa", "Empujar brazos al levantarse", "Movimiento continuo"] },
 ]
 
-const { data, error } = await supabase.from('exercises').insert(exercises).select('id')
+// Skip exercises that already exist (idempotent — safe to re-run)
+const { data: existing } = await supabase.from('exercises').select('name')
+const existingNames = new Set((existing ?? []).map(e => e.name))
+const toInsert = exercises.filter(e => !existingNames.has(e.name))
 
-if (error) {
-  console.error('Error:', error.message)
-  process.exit(1)
+if (toInsert.length === 0) {
+  console.log('✓ Todos los ejercicios ya existen, nada que insertar')
 } else {
-  console.log(`✓ ${data.length} ejercicios insertados correctamente`)
+  const { data, error } = await supabase.from('exercises').insert(toInsert).select('id')
+  if (error) { console.error('Error:', error.message); process.exit(1) }
+  console.log(`✓ ${data.length} ejercicios nuevos insertados (${existingNames.size} ya existían)`)
 }

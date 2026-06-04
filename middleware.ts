@@ -1,71 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
 import { verifySession, MEMBER_COOKIE } from "@/lib/session";
 
+/**
+ * Lightweight middleware — NO network calls.
+ * Only verifies cookies locally so it adds <1ms per request.
+ *
+ * - Member dashboard: verify the HMAC-signed session cookie (local crypto).
+ * - Trainer dashboard: check the Supabase auth cookie is present
+ *   (full validation happens client-side via getUser() + RLS on the data).
+ */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ── 1. Supabase SSR: auto-refresh trainer sessions ──────────
-  // This keeps the Supabase Auth JWT alive without requiring re-login
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  // Refresh Supabase session (non-blocking)
-  await supabase.auth.getUser();
-
-  // ── 2. Protect member dashboard routes ──────────────────────
-  const isMemberRoute = pathname.includes("/dashboard/member");
-
-  if (isMemberRoute) {
-    const cookieHeader = request.cookies.get(MEMBER_COOKIE)?.value;
-    const session = cookieHeader ? await verifySession(cookieHeader) : null;
+  // ── Member dashboard routes ──────────────────────────────────
+  if (pathname.includes("/dashboard/member")) {
+    const token = request.cookies.get(MEMBER_COOKIE)?.value;
+    const session = token ? await verifySession(token) : null;
 
     if (!session) {
-      // Extract gym slug from path: /gym/[slug]/dashboard/member/...
-      const slugMatch = pathname.match(/^\/gym\/([^/]+)/);
-      const slug = slugMatch?.[1] ?? "antigravity";
-      const loginUrl = new URL(`/gym/${slug}/login?role=member`, request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
+      const slug = pathname.match(/^\/gym\/([^/]+)/)?.[1] ?? "antigravity";
+      return NextResponse.redirect(
+        new URL(`/gym/${slug}/login?role=member`, request.url)
+      );
     }
+    return NextResponse.next();
   }
 
-  // ── 3. Protect trainer dashboard routes ─────────────────────
-  const isTrainerRoute = pathname.includes("/dashboard/trainer");
+  // ── Trainer dashboard routes ─────────────────────────────────
+  if (pathname.includes("/dashboard/trainer")) {
+    // Supabase @supabase/ssr stores its session in a cookie named
+    // `sb-<project-ref>-auth-token`. Presence check only (no network).
+    const hasSupabaseAuth = request.cookies
+      .getAll()
+      .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
 
-  if (isTrainerRoute) {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      const slugMatch = pathname.match(/^\/gym\/([^/]+)/);
-      const slug = slugMatch?.[1] ?? "antigravity";
-      const loginUrl = new URL(`/gym/${slug}/login?role=trainer`, request.url);
-      return NextResponse.redirect(loginUrl);
+    if (!hasSupabaseAuth) {
+      const slug = pathname.match(/^\/gym\/([^/]+)/)?.[1] ?? "antigravity";
+      return NextResponse.redirect(
+        new URL(`/gym/${slug}/login?role=trainer`, request.url)
+      );
     }
+    return NextResponse.next();
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    // Run on all routes except static files and Next internals
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  // Only run on dashboard routes — never on API routes, static assets, or public pages
+  matcher: ["/gym/:slug/dashboard/:path*"],
 };

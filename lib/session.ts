@@ -30,6 +30,34 @@ async function getKey(): Promise<CryptoKey> {
   );
 }
 
+/* ── Derive a deterministic member password ───────────────────
+   Members never see or type this. It is derived from the server
+   secret + gym + DNI so the login endpoint can re-derive it to
+   sign the member into their Supabase Auth account (which enables
+   per-user Row Level Security on all their data). ──────────────── */
+
+export async function deriveMemberPassword(
+  gymId: string,
+  dni: string
+): Promise<string> {
+  const key = await getKey();
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`member:${gymId}:${dni}`)
+  );
+  // hex string, always ≥ 6 chars (Supabase minimum)
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/* Email used for the member's Supabase Auth account.
+   Gym-scoped so the same DNI can exist in different gyms. */
+export function memberAuthEmail(gymId: string, dni: string): string {
+  return `${gymId.replace(/-/g, "")}.${dni}@gymos.local`;
+}
+
 function toBase64url(buf: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))
     .replace(/\+/g, "-")

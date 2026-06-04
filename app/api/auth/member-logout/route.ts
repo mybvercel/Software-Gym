@@ -1,12 +1,18 @@
+import { NextRequest, NextResponse } from "next/server";
 import { MEMBER_COOKIE } from "@/lib/session";
 
-export async function POST() {
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      // Expire the cookie immediately
-      "Set-Cookie": `${MEMBER_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict`,
-    },
+export async function POST(request: NextRequest) {
+  const res = NextResponse.json({ ok: true });
+
+  // Clear the HMAC member cookie
+  res.cookies.set(MEMBER_COOKIE, "", { httpOnly: true, sameSite: "strict", path: "/", maxAge: 0 });
+
+  // Clear any Supabase auth cookies (sb-<ref>-auth-token[.n])
+  request.cookies.getAll().forEach((c) => {
+    if (c.name.startsWith("sb-") && c.name.includes("-auth-token")) {
+      res.cookies.set(c.name, "", { path: "/", maxAge: 0 });
+    }
   });
+
+  return res;
 }

@@ -1,6 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import { NextRequest } from "next/server";
-import { signSession, MEMBER_COOKIE, COOKIE_MAX_AGE } from "@/lib/session";
+import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  signSession, MEMBER_COOKIE, COOKIE_MAX_AGE,
+  deriveMemberPassword, memberAuthEmail,
+} from "@/lib/session";
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,110 +19,109 @@ export async function POST(
     const { slug } = await params;
     const { full_name, dni } = await request.json();
 
-    if (!full_name?.trim() || !dni?.trim()) {
-      return Response.json({ error: "Nombre y DNI son requeridos." }, { status: 400 });
-    }
+    if (!full_name?.trim() || !dni?.trim())
+      return NextResponse.json({ error: "Nombre y DNI son requeridos." }, { status: 400 });
+
+    const cleanDNI = dni.replace(/\D/g, "").trim();
 
     // 1. Find gym
-    const { data: gym, error: gymErr } = await admin
+    const { data: gym } = await admin
       .from("gyms")
       .select("id, name, slug")
       .eq("slug", slug)
       .eq("is_active", true)
       .single();
 
-    if (gymErr || !gym) {
-      return Response.json({ error: "Gimnasio no encontrado." }, { status: 404 });
-    }
+    if (!gym)
+      return NextResponse.json({ error: "Gimnasio no encontrado." }, { status: 404 });
 
-    // 2. Find or create profile
-    const { data: existing } = await admin
+    // 2. Find existing member by DNI
+    interface MemberRow {
+      id: string; full_name: string; role: string;
+      is_active: boolean; onboarding_completed: boolean;
+    }
+    const found = await admin
       .from("profiles")
       .select("id, full_name, role, is_active, onboarding_completed")
       .eq("gym_id", gym.id)
-      .eq("dni", dni.trim())
+      .eq("dni", cleanDNI)
       .maybeSingle();
+    let profile: MemberRow | null = found.data as MemberRow | null;
 
-    let profileId: string;
-    let profileName: string;
-    let profileRole: string;
+    const email = memberAuthEmail(gym.id, cleanDNI);
+    const password = await deriveMemberPassword(gym.id, cleanDNI);
 
-    if (existing) {
-      if (!existing.is_active) {
-        return Response.json(
-          { error: "Tu cuenta está inactiva. Hablá con tu profesor." },
-          { status: 403 }
-        );
+    // 3. If new, create the member auth account + profile
+    if (!profile) {
+      const { data: authUser, error: authErr } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: full_name.trim(), role: "member" },
+      });
+      if (authErr || !authUser?.user) {
+        console.error("Member auth create error:", authErr?.message);
+        return NextResponse.json({ error: "No se pudo crear tu perfil." }, { status: 500 });
       }
-      profileId   = existing.id;
-      profileName = existing.full_name;
-      profileRole = existing.role;
-    } else {
-      // Create new member
-      const { data: newProfile, error: insertErr } = await admin
-        .from("profiles")
-        .insert({
-          gym_id: gym.id,
-          role: "member",
-          full_name: full_name.trim(),
-          email: `${dni.trim()}@gymos.local`,
-          dni: dni.trim(),
-          is_active: true,
-          onboarding_completed: false,
-          whatsapp_notifications: true,
-        })
-        .select("id, full_name, role")
-        .single();
+      await admin.from("profiles").update({
+        gym_id: gym.id, role: "member", full_name: full_name.trim(),
+        dni: cleanDNI, is_active: true, onboarding_completed: false,
+        whatsapp_notifications: true,
+      }).eq("id", authUser.user.id);
 
-      if (insertErr || !newProfile) {
-        console.error("Profile insert error:", insertErr);
-        return Response.json(
-          { error: "Error al crear el perfil. Intentá nuevamente." },
-          { status: 500 }
-        );
-      }
-      profileId   = newProfile.id;
-      profileName = newProfile.full_name;
-      profileRole = newProfile.role;
+      profile = {
+        id: authUser.user.id, full_name: full_name.trim(),
+        role: "member", is_active: true, onboarding_completed: false,
+      };
     }
 
-    // 3. Record attendance
-    await admin.from("attendance").insert({
-      gym_id: gym.id,
-      member_id: profileId,
-      method: "app",
-    });
+    if (!profile.is_active)
+      return NextResponse.json({ error: "Tu cuenta está inactiva. Hablá con tu profesor." }, { status: 403 });
 
-    // 4. Sign a secure session token (async Web Crypto)
-    const token = await signSession({
-      id:       profileId,
-      name:     profileName,
-      gym_id:   gym.id,
-      gym_slug: gym.slug,
-      role:     profileRole,
-    });
-
-    // 5. Set HttpOnly cookie + return profile for localStorage fallback
-    const cookieValue = `${MEMBER_COOKIE}=${token}; Max-Age=${COOKIE_MAX_AGE}; Path=/; HttpOnly; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`;
-
-    // Check if onboarding was completed
-    const needsOnboarding = existing ? !(existing as any).onboarding_completed : true;
-
-    return new Response(
-      JSON.stringify({
-        profile: { id: profileId, name: profileName, gym_id: gym.id, gym_slug: gym.slug, role: profileRole },
-        needsOnboarding,
-      }),
+    // 4. Sign the member into Supabase Auth → sets session cookies (RLS works)
+    const cookieJar: { name: string; value: string; options: Record<string, unknown> }[] = [];
+    const ssr = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Set-Cookie": cookieValue,
+        cookies: {
+          getAll: () => request.cookies.getAll().map(c => ({ name: c.name, value: c.value })),
+          setAll: (list) => list.forEach(c => cookieJar.push(c)),
         },
       }
     );
+
+    const { error: signErr } = await ssr.auth.signInWithPassword({ email, password });
+    if (signErr) console.error("Member sign-in error:", signErr.message);
+
+    // 5. Record attendance
+    await admin.from("attendance").insert({
+      gym_id: gym.id, member_id: profile.id, method: "app",
+    });
+
+    // 6. Build response with all cookies
+    const sessionProfile = {
+      id: profile.id, name: profile.full_name,
+      gym_id: gym.id, gym_slug: gym.slug, role: profile.role,
+    };
+    const token = await signSession(sessionProfile);
+
+    const res = NextResponse.json({
+      profile: sessionProfile,
+      needsOnboarding: !profile.onboarding_completed,
+    });
+
+    // HMAC member cookie (middleware guard + UX)
+    res.cookies.set(MEMBER_COOKIE, token, {
+      httpOnly: true, sameSite: "strict", path: "/",
+      maxAge: COOKIE_MAX_AGE, secure: process.env.NODE_ENV === "production",
+    });
+    // Supabase session cookies (enables RLS)
+    cookieJar.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+
+    return res;
   } catch (err) {
     console.error("Member login error:", err);
-    return Response.json({ error: "Error inesperado." }, { status: 500 });
+    return NextResponse.json({ error: "Error inesperado." }, { status: 500 });
   }
 }
