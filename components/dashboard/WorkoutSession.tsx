@@ -77,6 +77,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   const [exercises, setExercises]       = useState<RoutineExercise[]>([]);
   const [dayName, setDayName]           = useState("Entrenamiento del día");
   const [routineId, setRoutineId]       = useState<string | null>(null);
+  const [routineName, setRoutineName]   = useState<string>("");
   const [isLoading, setIsLoading]       = useState(true);
 
   const [expandedId, setExpandedId]     = useState<string | null>(null);
@@ -86,6 +87,12 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
 
   const [startTime]                     = useState(() => Date.now());
   const [allDone, setAllDone]           = useState(false);
+
+  // Session feedback
+  const [mood, setMood]                 = useState<string>("");
+  const [comment, setComment]           = useState("");
+  const [savingFeedback, setSavingFeedback] = useState(false);
+  const [feedbackSaved, setFeedbackSaved]   = useState(false);
 
   /* ── Load data ── */
   useEffect(() => {
@@ -105,7 +112,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
     try {
       const { data: routine } = await supabase
         .from("routines")
-        .select("id, routine_days(id, day_number, name, routine_exercises(id, exercise_id, order_index, sets, reps, rest_seconds, notes, exercise:exercises(*)))")
+        .select("id, name, routine_days(id, day_number, name, routine_exercises(id, exercise_id, order_index, sets, reps, rest_seconds, notes, exercise:exercises(*)))")
         .eq("member_id", memberId)
         .eq("is_active", true)
         .order("created_at", { ascending: false })
@@ -113,6 +120,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
         .maybeSingle();
 
       if (!routine) { setIsLoading(false); return; }
+      setRoutineName(routine.name ?? "");
 
       setRoutineId(routine.id);
       const days = (routine.routine_days ?? []) as any[];
@@ -186,6 +194,39 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   const elapsed    = Math.round((Date.now() - startTime) / 60000);
   const totalVolume= Object.values(completed).reduce((s, e) => s + e.volume, 0);
 
+  /* ── Save session feedback (visible to the trainer) ── */
+  const submitFeedback = async () => {
+    if (!session) return;
+    setSavingFeedback(true);
+    try {
+      await fetch("/api/member/session-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          member_id: session.id,
+          mood: mood || null,
+          comment: comment || null,
+          routine_name: routineName,
+          day_name: dayName,
+          exercises_done: doneCount,
+          total_volume_kg: Math.round(totalVolume),
+          duration_min: elapsed,
+        }),
+      });
+    } finally {
+      setSavingFeedback(false);
+      setFeedbackSaved(true);
+    }
+  };
+
+  const MOODS = [
+    { v: "great",     l: "Muy bien" },
+    { v: "good",      l: "Bien" },
+    { v: "normal",    l: "Normal" },
+    { v: "tired",     l: "Cansado" },
+    { v: "exhausted", l: "Agotado" },
+  ];
+
   /* ──────────────── LOADING ────────────────────────────── */
   if (isLoading) return (
     <div style={{ minHeight: "100vh", background: "var(--bg-root)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -197,64 +238,110 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   if (allDone) return (
     <div style={{
       minHeight: "100vh", background: "var(--bg-root)",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", justifyContent: "center",
-      padding: "40px 24px", textAlign: "center",
-      fontFamily: "var(--font-body)",
+      display: "flex", flexDirection: "column", alignItems: "center",
+      padding: "48px 20px 60px", fontFamily: "var(--font-body)",
     }}>
-      <div style={{
-        width: "80px", height: "80px", borderRadius: "50%",
-        background: "var(--lime-dim)", border: "2px solid var(--lime)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        marginBottom: "24px",
-      }}>
-        <Check size={36} color="var(--lime)" strokeWidth={2.5} />
-      </div>
+      <div style={{ width: "100%", maxWidth: "440px", display: "flex", flexDirection: "column", alignItems: "center" }}>
 
-      <h1 style={{
-        fontFamily: "var(--font-display)", fontWeight: 800,
-        fontSize: "clamp(24px, 6vw, 32px)", color: "var(--text-primary)",
-        letterSpacing: "-0.02em", margin: "0 0 8px",
-      }}>
-        Entrenamiento completado
-      </h1>
-      <p style={{ color: "var(--text-secondary)", fontSize: "15px", margin: "0 0 36px" }}>
-        Excelente trabajo. Tu progreso quedó guardado.
-      </p>
+        <div style={{
+          width: "80px", height: "80px", borderRadius: "50%",
+          background: "var(--lime-dim)", border: "2px solid var(--lime)",
+          display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px",
+        }}>
+          <Check size={36} color="var(--lime)" strokeWidth={2.5} />
+        </div>
 
-      {/* Stats */}
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-        gap: "12px", width: "100%", maxWidth: "400px", marginBottom: "36px",
-      }}>
-        {[
-          { icon: <Check size={18} />, value: `${doneCount}`, label: "Ejercicios" },
-          { icon: <Clock size={18} />, value: `${elapsed}m`, label: "Duración" },
-          { icon: <BarChart2 size={18} />, value: `${Math.round(totalVolume)}kg`, label: "Volumen" },
-        ].map(({ icon, value, label }) => (
-          <div key={label} style={{
-            background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
-            borderRadius: "14px", padding: "16px 8px", textAlign: "center",
-          }}>
-            <div style={{ color: "var(--lime)", display: "flex", justifyContent: "center", marginBottom: "6px" }}>
-              {icon}
-            </div>
-            <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "20px", color: "var(--text-primary)", margin: "0 0 2px" }}>
-              {value}
+        {!feedbackSaved ? (
+          <>
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(24px,6vw,30px)", color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 8px", textAlign: "center" }}>
+              ¡Terminaste todo por hoy!
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "15px", margin: "0 0 28px", textAlign: "center" }}>
+              Tu progreso quedó guardado.
             </p>
-            <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>{label}</p>
-          </div>
-        ))}
-      </div>
 
-      <button
-        onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)}
-        className="gymos-btn gymos-btn-primary"
-        style={{ letterSpacing: "0.04em", textTransform: "uppercase", minWidth: "220px" }}
-      >
-        Volver al inicio
-        <ArrowRight size={16} />
-      </button>
+            {/* Stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", width: "100%", marginBottom: "28px" }}>
+              {[
+                { icon: <Check size={18} />, value: `${doneCount}`, label: "Ejercicios" },
+                { icon: <Clock size={18} />, value: `${elapsed}m`, label: "Duración" },
+                { icon: <BarChart2 size={18} />, value: `${Math.round(totalVolume)}kg`, label: "Volumen" },
+              ].map(({ icon, value, label }) => (
+                <div key={label} style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: "14px", padding: "16px 8px", textAlign: "center" }}>
+                  <div style={{ color: "var(--lime)", display: "flex", justifyContent: "center", marginBottom: "6px" }}>{icon}</div>
+                  <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "20px", color: "var(--text-primary)", margin: "0 0 2px" }}>{value}</p>
+                  <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0 }}>{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Mood selector */}
+            <div style={{ width: "100%", background: "var(--bg-card)", border: "1px solid var(--border-subtle)", borderRadius: "18px", padding: "20px", marginBottom: "16px" }}>
+              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "16px", color: "var(--text-primary)", margin: "0 0 14px" }}>
+                ¿Cómo te sentiste hoy?
+              </p>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
+                {MOODS.map(m => {
+                  const active = mood === m.v;
+                  return (
+                    <button key={m.v} onClick={() => setMood(active ? "" : m.v)} style={{
+                      padding: "10px 16px", borderRadius: "999px", cursor: "pointer",
+                      border: `1.5px solid ${active ? "var(--lime)" : "var(--border-default)"}`,
+                      background: active ? "var(--lime-dim)" : "var(--bg-elevated)",
+                      color: active ? "var(--lime)" : "var(--text-secondary)",
+                      fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px",
+                    }}>
+                      {m.l}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <label className="gymos-label">Comentario para tu profe (opcional)</label>
+              <textarea
+                rows={3}
+                placeholder="Ej: las sentadillas me costaron, el peso del press estuvo perfecto..."
+                className="gymos-input"
+                style={{ height: "auto", resize: "none", padding: "14px 16px", lineHeight: 1.6 }}
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              />
+            </div>
+
+            <button
+              onClick={submitFeedback}
+              disabled={savingFeedback}
+              className="gymos-btn gymos-btn-primary gymos-btn-full"
+              style={{ letterSpacing: "0.04em", textTransform: "uppercase" }}
+            >
+              {savingFeedback ? <Loader2 size={18} style={{ animation: "spin 0.7s linear infinite" }} /> : <>Guardar y finalizar <ArrowRight size={16} /></>}
+            </button>
+          </>
+        ) : (
+          /* ── Farewell ── */
+          <div style={{ textAlign: "center", animation: "fadeIn 0.4s ease" }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(24px,6vw,30px)", color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 12px" }}>
+              ¡A descansar!
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6, margin: "0 0 8px" }}>
+              Te espero en la próxima sesión.
+            </p>
+            {mood || comment ? (
+              <p style={{ color: "var(--lime)", fontSize: "14px", fontWeight: 600, margin: "0 0 32px" }}>
+                Tu profe va a ver cómo te sentiste hoy.
+              </p>
+            ) : <div style={{ height: "32px" }} />}
+
+            <button
+              onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)}
+              className="gymos-btn gymos-btn-primary"
+              style={{ letterSpacing: "0.04em", textTransform: "uppercase", minWidth: "220px" }}
+            >
+              Volver al inicio <ArrowRight size={16} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 
