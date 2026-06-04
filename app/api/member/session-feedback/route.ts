@@ -1,10 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 const MOOD_LABELS: Record<string, string> = {
   great: "Muy bien", good: "Bien", normal: "Normal",
@@ -13,6 +8,7 @@ const MOOD_LABELS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+    const admin = createAdminClient();
     const {
       member_id, mood, comment,
       routine_name, day_name,

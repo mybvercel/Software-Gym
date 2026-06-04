@@ -1,14 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /** General feedback / suggestion from a member to the gym (trainer sees it). */
 export async function POST(request: NextRequest) {
   try {
+    const admin = createAdminClient();
     const { member_id, comment, rating } = await request.json();
     if (!member_id || !comment?.trim())
       return Response.json({ error: "Escribí tu comentario." }, { status: 400 });

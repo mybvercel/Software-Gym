@@ -1,10 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * Tracks a member's LIVE training session so the trainer panel can show
@@ -18,6 +13,7 @@ const admin = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    const admin = createAdminClient();
     const { action, member_id, day_name } = await request.json();
     if (!member_id || !["start", "end"].includes(action))
       return Response.json({ error: "Datos inválidos." }, { status: 400 });

@@ -1,9 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const STALE_HOURS = 3;
 
@@ -19,6 +14,7 @@ const STALE_HOURS = 3;
  */
 export async function POST() {
   try {
+    const admin = createAdminClient();
     const threshold = new Date(Date.now() - STALE_HOURS * 60 * 60 * 1000).toISOString();
 
     // Active markers older than the threshold

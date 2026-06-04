@@ -1,11 +1,6 @@
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
 import { deriveMemberPassword, memberAuthEmail } from "@/lib/session";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * Creates a member as a real Supabase Auth user.
@@ -18,6 +13,7 @@ async function createMember(
   dni: string,
   phone?: string
 ): Promise<"created" | "exists" | "error"> {
+  const admin = createAdminClient();
   // Already exists in this gym?
   const { data: existing } = await admin
     .from("profiles")
@@ -88,6 +84,7 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const admin = createAdminClient();
     const { slug } = await params;
     const body = await request.json();
     const rows: { full_name: string; dni: string; phone?: string }[] =
