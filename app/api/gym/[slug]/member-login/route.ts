@@ -89,8 +89,8 @@ export async function POST(
       method: "app",
     });
 
-    // 4. Sign a secure session token
-    const token = signSession({
+    // 4. Sign a secure session token (async Web Crypto)
+    const token = await signSession({
       id:       profileId,
       name:     profileName,
       gym_id:   gym.id,

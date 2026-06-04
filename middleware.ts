@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
   if (isMemberRoute) {
     const cookieHeader = request.cookies.get(MEMBER_COOKIE)?.value;
-    const session = cookieHeader ? verifySession(cookieHeader) : null;
+    const session = cookieHeader ? await verifySession(cookieHeader) : null;
 
     if (!session) {
       // Extract gym slug from path: /gym/[slug]/dashboard/member/...

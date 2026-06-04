@@ -1,16 +1,8 @@
 /**
  * lib/session.ts
- * Firma y verifica tokens de sesión con HMAC-SHA256.
- * Solo corre en el servidor — nunca se expone al cliente.
+ * Firma y verifica tokens con HMAC-SHA256 usando Web Crypto API.
+ * Compatible con Edge Runtime (middleware) y Node.js (API routes).
  */
-
-import { createHmac, timingSafeEqual } from "crypto";
-
-const SECRET = process.env.SESSION_SECRET;
-
-if (!SECRET && process.env.NODE_ENV === "production") {
-  throw new Error("SESSION_SECRET is not set — set it in .env.local");
-}
 
 export interface MemberSession {
   id: string;
@@ -18,26 +10,66 @@ export interface MemberSession {
   gym_id: string;
   gym_slug: string;
   role: string;
-  iat: number; // issued at (unix timestamp)
+  iat: number;
 }
 
-/* ── Sign ─────────────────────────────────────────────────── */
+export const MEMBER_COOKIE  = "gymos_member_session";
+export const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 días
 
-export function signSession(data: Omit<MemberSession, "iat">): string {
-  const payload = Buffer.from(
+const SECRET = process.env.SESSION_SECRET ?? "dev-secret-change-in-production";
+
+/* ── Helpers ────────────────────────────────────────────── */
+
+async function getKey(): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"]
+  );
+}
+
+function toBase64url(buf: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function fromBase64url(str: string): Uint8Array {
+  const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b64);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+/* ── Sign ───────────────────────────────────────────────── */
+
+export async function signSession(
+  data: Omit<MemberSession, "iat">
+): Promise<string> {
+  const payload = btoa(
     JSON.stringify({ ...data, iat: Math.floor(Date.now() / 1000) })
-  ).toString("base64url");
+  )
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 
-  const sig = createHmac("sha256", SECRET ?? "dev-secret")
-    .update(payload)
-    .digest("base64url");
+  const key = await getKey();
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payload)
+  );
 
-  return `${payload}.${sig}`;
+  return `${payload}.${toBase64url(sig)}`;
 }
 
-/* ── Verify ───────────────────────────────────────────────── */
+/* ── Verify ─────────────────────────────────────────────── */
 
-export function verifySession(token: string): MemberSession | null {
+export async function verifySession(
+  token: string
+): Promise<MemberSession | null> {
   try {
     const dot = token.lastIndexOf(".");
     if (dot === -1) return null;
@@ -45,40 +77,25 @@ export function verifySession(token: string): MemberSession | null {
     const payload = token.slice(0, dot);
     const sig     = token.slice(dot + 1);
 
-    const expected = createHmac("sha256", SECRET ?? "dev-secret")
-      .update(payload)
-      .digest("base64url");
+    const key = await getKey();
+    const sigBytes = fromBase64url(sig);
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      sigBytes.buffer.slice(sigBytes.byteOffset, sigBytes.byteOffset + sigBytes.byteLength) as ArrayBuffer,
+      new TextEncoder().encode(payload)
+    );
+    if (!valid) return null;
 
-    // timing-safe comparison prevents timing attacks
-    const sigBuf = Buffer.from(sig,      "base64url");
-    const expBuf = Buffer.from(expected, "base64url");
-    if (sigBuf.length !== expBuf.length) return null;
-    if (!timingSafeEqual(sigBuf, expBuf)) return null;
-
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as MemberSession;
+    const data = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    ) as MemberSession;
 
     // Expire after 30 days
-    const MAX_AGE = 30 * 24 * 60 * 60;
-    if (Math.floor(Date.now() / 1000) - data.iat > MAX_AGE) return null;
+    if (Math.floor(Date.now() / 1000) - data.iat > COOKIE_MAX_AGE) return null;
 
     return data;
   } catch {
     return null;
   }
-}
-
-/* ── Cookie helpers ───────────────────────────────────────── */
-
-export const MEMBER_COOKIE = "gymos_member_session";
-export const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 días en segundos
-
-export function memberCookieOptions(maxAge = COOKIE_MAX_AGE) {
-  return [
-    `${MEMBER_COOKIE}=`,   // value filled by caller
-    `Max-Age=${maxAge}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Strict",
-    process.env.NODE_ENV === "production" ? "Secure" : "",
-  ].filter(Boolean).join("; ");
 }
