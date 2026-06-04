@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Loader2, Minus, Plus } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
+import GymLoader from "@/components/ui/GymLoader";
 
 /* ── Constants ─────────────────────────────────────────────── */
 
@@ -137,9 +138,7 @@ export default function HealthProfileForm({ gymSlug }: { gymSlug: string }) {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg-root)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="gymos-spinner-lg" />
-      </div>
+      <GymLoader fullScreen />
     );
   }
 

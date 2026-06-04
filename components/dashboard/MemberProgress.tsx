@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 import WorkoutCalendar from "./WorkoutCalendar";
+import GymLoader from "@/components/ui/GymLoader";
 import { buildExerciseProgress, overallInsight, type ExerciseProgress } from "@/lib/progress";
 
 /* ─────────────────────────────────────── Types ── */
@@ -208,11 +209,7 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
   })();
 
   /* ──────────────── LOADING ── */
-  if (isLoading) return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-root)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="gymos-spinner-lg" />
-    </div>
-  );
+  if (isLoading) return <GymLoader fullScreen />;
 
   /* ──────────────── RENDER ── */
   return (

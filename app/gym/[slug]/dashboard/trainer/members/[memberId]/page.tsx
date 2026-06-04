@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
 import RoutineBuilder from "@/components/dashboard/RoutineBuilder";
 import BackButton from "@/components/ui/BackButton";
+import GymLoader from "@/components/ui/GymLoader";
 import { buildExerciseProgress, overallInsight, type ExerciseProgress } from "@/lib/progress";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
@@ -105,7 +106,7 @@ export default function MemberDetailPage() {
 
   if (isLoading || !member) return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="gymos-spinner-lg" />
+      <GymLoader />
     </div>
   );
 

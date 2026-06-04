@@ -415,6 +415,58 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================================
+   GYM LOADER — animated dumbbell doing curls
+   ============================================================ */
+
+.gym-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.gym-loader__dumbbell {
+  color: var(--lime);
+  transform-origin: 50% 50%;
+  animation: dumbbellCurl 1.15s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  filter: drop-shadow(0 0 14px rgba(158, 255, 0, 0.45));
+}
+
+@keyframes dumbbellCurl {
+  0%   { transform: rotate(-32deg) translateY(2px); }
+  50%  { transform: rotate(32deg)  translateY(-8px); }
+  100% { transform: rotate(-32deg) translateY(2px); }
+}
+
+.gym-loader__shadow {
+  width: 56px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(158,255,0,0.30) 0%, rgba(158,255,0,0) 70%);
+  margin-top: -8px;
+  animation: loaderShadow 1.15s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes loaderShadow {
+  0%, 100% { transform: scaleX(1);   opacity: 0.6; }
+  50%      { transform: scaleX(0.62); opacity: 0.3; }
+}
+
+.gym-loader__text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  animation: loaderTextPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes loaderTextPulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+
+/* ============================================================
    DIVIDERS & UTILITIES
    ============================================================ */
 

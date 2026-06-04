@@ -10,6 +10,7 @@ import {
   Loader2, BarChart2, ArrowRight,
 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
+import GymLoader from "@/components/ui/GymLoader";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -270,11 +271,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   ];
 
   /* ──────────────── LOADING ────────────────────────────── */
-  if (isLoading) return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-root)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="gymos-spinner-lg" />
-    </div>
-  );
+  if (isLoading) return <GymLoader fullScreen />;
 
   /* ──────────────── COMPLETION SCREEN ─────────────────── */
   if (allDone) return (

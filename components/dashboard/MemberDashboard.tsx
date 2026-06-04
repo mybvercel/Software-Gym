@@ -6,6 +6,7 @@ import type { Routine, RoutineDay, RoutineExercise } from "@/lib/types";
 import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
 import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper } from "lucide-react";
 import WorkoutCalendar from "./WorkoutCalendar";
+import GymLoader from "@/components/ui/GymLoader";
 
 interface MemberSession {
   id: string;
@@ -106,14 +107,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
   };
 
   if (isLoading) {
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg-root)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div className="gymos-spinner-lg" style={{ margin: "0 auto 16px" }} />
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>Cargando tu entrenamiento...</p>
-        </div>
-      </div>
-    );
+    return <GymLoader fullScreen />;
   }
 
   const exercises = todayDay?.routine_exercises ?? [];
