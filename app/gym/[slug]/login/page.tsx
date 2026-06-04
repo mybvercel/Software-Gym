@@ -1,9 +1,10 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Dumbbell, ClipboardList, ArrowLeft } from "lucide-react";
+import { Dumbbell, ClipboardList } from "lucide-react";
 import MemberAccessForm from "@/components/auth/MemberAccessForm";
 import TrainerLoginForm from "@/components/auth/TrainerLoginForm";
+import BackButton from "@/components/ui/BackButton";
 
 const GYM_NAMES: Record<string, string> = {
   antigravity: "Antigravity Gym",
@@ -37,21 +38,7 @@ export default function LoginPage() {
 
       {/* Volver */}
       <div style={{ width: "100%", maxWidth: "420px", marginBottom: "20px" }}>
-        <button
-          onClick={() => router.push(`/gym/${slug}`)}
-          style={{
-            display: "flex", alignItems: "center", gap: "6px",
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: "14px", color: "var(--text-secondary)", fontWeight: 500,
-            fontFamily: "inherit", padding: 0,
-            transition: "color 0.2s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = "var(--text-primary)")}
-          onMouseLeave={e => (e.currentTarget.style.color = "var(--text-secondary)")}
-        >
-          <ArrowLeft size={15} />
-          Volver a roles
-        </button>
+        <BackButton onClick={() => router.push(`/gym/${slug}`)} label="Volver a roles" tone="dark" />
       </div>
 
       {/* Card */}

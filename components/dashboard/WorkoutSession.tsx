@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ExerciseVideo } from "@/components/exercises/ExerciseDetail";
 import {
-  ArrowLeft, ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp,
   Check, Clock, Dumbbell, Play,
   Loader2, BarChart2, ArrowRight,
 } from "lucide-react";
+import BackButton from "@/components/ui/BackButton";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -325,20 +326,10 @@ function TopBar({ gymSlug, dayName, doneCount, totalCount, pct }: {
     }}>
       <div style={{ maxWidth: "600px", margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-          <button
-            onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)}
-            style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              background: "none", border: "none", cursor: "pointer",
-              color: "var(--text-secondary)", fontSize: "13px",
-              fontWeight: 500, fontFamily: "inherit", padding: 0,
-            }}
-          >
-            <ArrowLeft size={15} /> Volver
-          </button>
+          <BackButton onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)} tone="dark" />
           <span style={{
             fontFamily: "var(--font-display)", fontWeight: 700,
-            fontSize: "15px", color: "var(--text-primary)",
+            fontSize: "18px", color: "var(--text-primary)",
           }}>
             {dayName}
           </span>
@@ -425,17 +416,17 @@ function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggl
         {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
-            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px",
+            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "16px",
             color: isDone ? "var(--lime)" : "var(--text-primary)",
             textDecoration: isDone ? "line-through" : "none",
             margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {ex.name}
           </p>
-          <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "3px 0 0" }}>
+          <p style={{ fontSize: "14px", color: "var(--text-secondary)", margin: "3px 0 0" }}>
             {re.sets} series × {re.reps} reps
           </p>
-          <p style={{ fontSize: "11px", color: "var(--lime)", margin: "2px 0 0", fontWeight: 600 }}>
+          <p style={{ fontSize: "13px", color: "var(--lime)", margin: "2px 0 0", fontWeight: 600 }}>
             {re.rest_seconds}s descanso
           </p>
         </div>

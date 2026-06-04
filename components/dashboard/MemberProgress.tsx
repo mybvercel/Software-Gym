@@ -8,10 +8,11 @@ import {
   Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  ArrowLeft, ArrowUp, ArrowDown, Minus,
+  ArrowUp, ArrowDown, Minus,
   Plus, X, Loader2, Trophy, TrendingUp,
   Scale, Activity,
 } from "lucide-react";
+import BackButton from "@/components/ui/BackButton";
 
 /* ─────────────────────────────────────── Types ── */
 
@@ -202,24 +203,19 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
         position: "sticky", top: 0, zIndex: 40,
         background: "var(--bg-glass)", backdropFilter: "blur(20px)",
         borderBottom: "1px solid var(--border-subtle)",
-        padding: "0 20px", height: "56px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "10px 16px", minHeight: "66px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
       }}>
-        <button
-          onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)}
-          style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: "14px", fontWeight: 500, fontFamily: "inherit", padding: 0 }}
-        >
-          <ArrowLeft size={16} /> Volver
-        </button>
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "15px", color: "var(--text-primary)" }}>
+        <BackButton onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)} tone="dark" />
+        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "18px", color: "var(--text-primary)" }}>
           Mi Progreso
         </span>
         <button
           onClick={() => setShowModal(true)}
           className="gymos-btn gymos-btn-primary"
-          style={{ height: "34px", padding: "0 14px", fontSize: "13px", letterSpacing: "0.02em" }}
+          style={{ height: "46px", padding: "0 18px", fontSize: "15px", letterSpacing: "0.02em" }}
         >
-          <Plus size={14} /> Registrar
+          <Plus size={18} /> Registrar
         </button>
       </header>
 

@@ -458,7 +458,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
       {/* ── BOTTOM NAV ── */}
       <nav style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
-        height: "68px", background: T.card,
+        height: "76px", background: T.card,
         borderTop: `1px solid ${T.border}`,
         display: "flex",
       }}>
@@ -472,13 +472,13 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
           return (
             <button key={id} onClick={() => setActiveTab(id)} style={{
               flex: 1, display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center", gap: "4px",
+              alignItems: "center", justifyContent: "center", gap: "5px",
               background: "none", border: "none", cursor: "pointer",
               color: active ? T.green : T.light,
               transition: "color 0.2s",
             }}>
-              <Icon size={22} strokeWidth={active ? 2.5 : 1.75} />
-              <span style={{ fontSize: "10px", fontWeight: active ? 700 : 500 }}>{label}</span>
+              <Icon size={26} strokeWidth={active ? 2.5 : 1.75} />
+              <span style={{ fontSize: "12px", fontWeight: active ? 700 : 500 }}>{label}</span>
             </button>
           );
         })}
@@ -569,10 +569,10 @@ function MemberCard({ member: m, gymSlug, onAssignRoutine }: {
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "14px", color: T.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "16px", color: T.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {m.full_name}
         </p>
-        <p style={{ fontSize: "12px", color: T.muted, margin: "2px 0 0" }}>
+        <p style={{ fontSize: "14px", color: T.muted, margin: "3px 0 0" }}>
           {m.dni ? `DNI ${m.dni}` : "Sin DNI"}
         </p>
       </div>

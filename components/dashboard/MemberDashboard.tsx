@@ -538,7 +538,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
         backdropFilter: "blur(20px)",
         borderTop: "1px solid var(--border-subtle)",
         display: "flex",
-        height: "68px",
+        height: "76px",
       }}>
         {([
           { id: "home", icon: Home, label: "Home" },
@@ -553,14 +553,14 @@ export default function MemberDashboard({ gymSlug }: Props) {
               onClick={() => id === "progress" ? router.push(`/gym/${gymSlug}/dashboard/member/progress`) : setActiveTab(id)}
               style={{
                 flex: 1, display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", gap: "4px",
+                alignItems: "center", justifyContent: "center", gap: "5px",
                 background: "none", border: "none", cursor: "pointer",
                 color: active ? "var(--lime)" : "var(--text-muted)",
                 transition: "color 0.2s",
               }}
             >
-              <Icon size={22} strokeWidth={active ? 2.5 : 1.75} />
-              <span style={{ fontSize: "10px", fontWeight: active ? 700 : 500, letterSpacing: "0.02em" }}>
+              <Icon size={26} strokeWidth={active ? 2.5 : 1.75} />
+              <span style={{ fontSize: "12px", fontWeight: active ? 700 : 500, letterSpacing: "0.02em" }}>
                 {label}
               </span>
             </button>

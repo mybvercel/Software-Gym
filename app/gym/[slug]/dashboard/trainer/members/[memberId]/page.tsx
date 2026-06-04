@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
 import RoutineBuilder from "@/components/dashboard/RoutineBuilder";
+import BackButton from "@/components/ui/BackButton";
 import {
-  ArrowLeft, ClipboardList, Dumbbell, TrendingUp,
+  ClipboardList, Dumbbell, TrendingUp,
   CheckCircle, Clock, Calendar, Scale, ChevronDown, ChevronUp,
   Plus, Pencil, X,
 } from "lucide-react";
@@ -98,9 +99,9 @@ export default function MemberDetailPage() {
       {/* ── Header ── */}
       <div style={{ background: T.navy, padding: "48px 20px 28px" }}>
         <div style={{ maxWidth: "640px", margin: "0 auto" }}>
-          <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: "6px", background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: "13px", fontWeight: 500, fontFamily: T.font, padding: "0 0 20px", marginLeft: "-4px" }}>
-            <ArrowLeft size={15} /> Volver
-          </button>
+          <div style={{ marginBottom: "20px" }}>
+            <BackButton onClick={() => router.back()} tone="dark" />
+          </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: bgColor, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, fontWeight: 800, fontSize: "20px", color: "#fff", flexShrink: 0 }}>
