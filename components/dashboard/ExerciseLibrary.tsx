@@ -6,7 +6,7 @@ import type { Exercise } from "@/lib/types";
 import { ExerciseVideo } from "@/components/exercises/ExerciseDetail";
 import {
   Search, Plus, X, Play, ChevronRight,
-  Loader2, Check, Dumbbell, Filter,
+  Loader2, Check, Dumbbell, Filter, Pencil,
 } from "lucide-react";
 
 /* ─────────────────────── Design tokens (trainer — light) ── */
@@ -80,11 +80,29 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
   const [gymId,       setGymId]       = useState<string | null>(null);
   const [isSaving,    setIsSaving]    = useState(false);
   const [saveOk,      setSaveOk]      = useState(false);
+  const [editingId,   setEditingId]   = useState<string | null>(null);
 
-  const [newEx, setNewEx] = useState({
+  const EMPTY_EX = {
     name: "", muscle_group: "chest", description: "",
-    video_url: "", equipment: "barbell", difficulty: "beginner",
-  });
+    video_url: "", thumbnail_url: "", equipment: "barbell", difficulty: "beginner",
+  };
+  const [newEx, setNewEx] = useState(EMPTY_EX);
+
+  const openNew = () => { setEditingId(null); setNewEx(EMPTY_EX); setShowForm(true); };
+  const openEdit = (ex: Exercise) => {
+    setEditingId(ex.id);
+    setNewEx({
+      name: ex.name ?? "",
+      muscle_group: ex.muscle_group ?? "chest",
+      description: ex.description ?? "",
+      video_url: ex.video_url ?? "",
+      thumbnail_url: ex.thumbnail_url ?? "",
+      equipment: ex.equipment ?? "barbell",
+      difficulty: ex.difficulty ?? "beginner",
+    });
+    setSelected(null);
+    setShowForm(true);
+  };
 
   useEffect(() => { loadExercises(); }, []);
 
@@ -112,25 +130,39 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
     setIsSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { data } = await supabase.from("exercises").insert({
-      gym_id: gymId ?? null,
+    const payload = {
       name: newEx.name.trim(),
       muscle_group: newEx.muscle_group,
       description: newEx.description || null,
       video_url: newEx.video_url || null,
+      thumbnail_url: newEx.thumbnail_url || null,
       equipment: newEx.equipment || null,
       difficulty: newEx.difficulty,
-      is_active: true,
-      created_by: user?.id ?? null,
-    }).select().single();
+    };
 
-    if (data) {
-      setExercises(prev => [...prev, data as Exercise].sort((a, b) => a.name.localeCompare(b.name)));
+    let saved: Exercise | null = null;
+
+    if (editingId) {
+      // ── Update existing ──
+      const { data } = await supabase.from("exercises").update(payload).eq("id", editingId).select().single();
+      saved = (data as Exercise) ?? null;
+      if (saved) setExercises(prev => prev.map(e => e.id === editingId ? saved! : e).sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      // ── Insert new ──
+      const { data } = await supabase.from("exercises").insert({
+        ...payload, gym_id: gymId ?? null, is_active: true, created_by: user?.id ?? null,
+      }).select().single();
+      saved = (data as Exercise) ?? null;
+      if (saved) setExercises(prev => [...prev, saved!].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+
+    if (saved) {
       setSaveOk(true);
       setTimeout(() => {
         setSaveOk(false);
         setShowForm(false);
-        setNewEx({ name: "", muscle_group: "chest", description: "", video_url: "", equipment: "barbell", difficulty: "beginner" });
+        setEditingId(null);
+        setNewEx(EMPTY_EX);
       }, 1200);
     }
     setIsSaving(false);
@@ -159,7 +191,7 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
             </p>
           </div>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={openNew}
             style={{
               display: "flex", alignItems: "center", gap: "6px",
               padding: "9px 16px", borderRadius: "10px",
@@ -251,15 +283,22 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
                   )}
                 </div>
               </div>
+              {/* Edit button */}
+              <button
+                onClick={() => openEdit(selected)}
+                style={{ display: "flex", alignItems: "center", gap: "5px", padding: "8px 12px", borderRadius: "9px", background: T.greenDim, border: `1px solid ${T.greenBorder}`, cursor: "pointer", color: T.green, fontFamily: T.font, fontWeight: 700, fontSize: "13px", flexShrink: 0 }}
+              >
+                <Pencil size={13} /> Editar
+              </button>
             </div>
 
-            {/* Video */}
-            {selected.video_url ? (
-              <ExerciseVideo videoUrl={selected.video_url} exerciseName={selected.name} />
+            {/* Video / photo (photo shows instantly, video loads on tap) */}
+            {(selected.video_url || selected.thumbnail_url) ? (
+              <ExerciseVideo videoUrl={selected.video_url} exerciseName={selected.name} posterUrl={selected.thumbnail_url} />
             ) : (
               <div style={{ width: "100%", aspectRatio: "16/9", background: T.bg, borderRadius: "12px", border: `1px solid ${T.border}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                 <Play size={24} color={T.light} strokeWidth={1.5} />
-                <p style={{ fontSize: "13px", color: T.light, margin: 0 }}>Video no cargado aún</p>
+                <p style={{ fontSize: "13px", color: T.light, margin: 0 }}>Sin video ni foto cargados aún</p>
               </div>
             )}
 
@@ -294,7 +333,7 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
 
       {/* ── NEW EXERCISE FORM ── */}
       {showForm && (
-        <BottomSheet onClose={() => setShowForm(false)} title="Nuevo ejercicio">
+        <BottomSheet onClose={() => { setShowForm(false); setEditingId(null); }} title={editingId ? "Editar ejercicio" : "Nuevo ejercicio"}>
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
 
             <FormField label="Nombre *">
@@ -348,6 +387,19 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
               />
             </FormField>
 
+            <FormField label="Foto del ejercicio (URL)">
+              <input
+                type="url"
+                placeholder="https://... (se muestra mientras carga el video)"
+                className="gymos-input"
+                value={newEx.thumbnail_url}
+                onChange={e => setNewEx(p => ({ ...p, thumbnail_url: e.target.value }))}
+              />
+              {newEx.thumbnail_url && (
+                <img src={newEx.thumbnail_url} alt="Vista previa" style={{ marginTop: "8px", width: "100%", maxHeight: "160px", objectFit: "cover", borderRadius: "10px", border: `1px solid ${T.border}` }} />
+              )}
+            </FormField>
+
             <FormField label="Descripción / instrucciones">
               <textarea
                 rows={3}
@@ -367,6 +419,7 @@ export default function ExerciseLibrary({ gymSlug }: Props) {
             >
               {isSaving ? <Loader2 size={18} style={{ animation: "spin 0.7s linear infinite" }} />
                : saveOk  ? <><Check size={16} strokeWidth={3} /> Guardado</>
+               : editingId ? <><Check size={16} /> Guardar cambios</>
                : <><Plus size={16} /> Guardar ejercicio</>}
             </button>
           </div>

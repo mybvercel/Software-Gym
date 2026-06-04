@@ -3,24 +3,76 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface ExerciseVideoProps {
-  videoUrl: string;
+  videoUrl?: string;
   exerciseName: string;
+  posterUrl?: string;   // custom photo shown instantly (fallback while video loads)
 }
 
-export function ExerciseVideo({ videoUrl, exerciseName }: ExerciseVideoProps) {
+/**
+ * Lite YouTube embed: shows the exercise photo (or YouTube thumbnail)
+ * immediately with a play button, and only loads the iframe when tapped.
+ * This means the user always sees an image right away — even if the video
+ * is slow to load — and the page stays fast.
+ */
+export function ExerciseVideo({ videoUrl, exerciseName, posterUrl }: ExerciseVideoProps) {
+  const [playing, setPlaying] = useState(false);
   const videoId = videoUrl?.match(/(?:v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
-  if (!videoId) return null;
+
+  // No video at all → just show the photo if we have one
+  if (!videoId) {
+    if (!posterUrl) return null;
+    return (
+      <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: "12px", overflow: "hidden", background: "#000" }}>
+        <img src={posterUrl} alt={exerciseName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      </div>
+    );
+  }
+
+  const poster = posterUrl || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+  if (playing) {
+    return (
+      <div style={{ width: "100%", aspectRatio: "16/9", borderRadius: "12px", overflow: "hidden", background: "#000" }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&autoplay=1`}
+          title={exerciseName}
+          style={{ width: "100%", height: "100%", border: 0 }}
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full overflow-hidden rounded-xl" style={{ aspectRatio: "16/9", background: "#000" }}>
-      <iframe
-        src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`}
-        title={exerciseName}
-        className="w-full h-full"
-        allowFullScreen
+    <button
+      onClick={() => setPlaying(true)}
+      aria-label={`Reproducir video de ${exerciseName}`}
+      style={{
+        position: "relative", width: "100%", aspectRatio: "16/9",
+        borderRadius: "12px", overflow: "hidden", border: "none",
+        padding: 0, cursor: "pointer", background: "#000", display: "block",
+      }}
+    >
+      <img
+        src={poster}
+        alt={exerciseName}
         loading="lazy"
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
       />
-    </div>
+      {/* dark overlay + play button */}
+      <span style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+      <span style={{
+        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+        width: "62px", height: "62px", borderRadius: "50%",
+        background: "rgba(0,0,0,0.55)", border: "2px solid rgba(255,255,255,0.9)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff" style={{ marginLeft: "3px" }}>
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </span>
+    </button>
   );
 }
 

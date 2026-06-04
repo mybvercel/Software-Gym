@@ -616,9 +616,9 @@ function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggl
           {/* Set tracker with rest timer */}
           <SetTracker sets={re.sets} restSeconds={re.rest_seconds} />
 
-          {/* Video */}
-          {ex.video_url ? (
-            <ExerciseVideo videoUrl={ex.video_url} exerciseName={ex.name} />
+          {/* Video / photo — photo shows instantly, video loads on tap */}
+          {(ex.video_url || ex.thumbnail_url) ? (
+            <ExerciseVideo videoUrl={ex.video_url} exerciseName={ex.name} posterUrl={ex.thumbnail_url} />
           ) : (
             <div style={{
               width: "100%", aspectRatio: "16/9",
