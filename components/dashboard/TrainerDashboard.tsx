@@ -118,11 +118,16 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name, gym_id, gyms(name)")
+      .select("full_name, role, gym_id, gyms(name)")
       .eq("id", user.id)
       .single();
 
-    if (!profile) { setIsLoading(false); return; }
+    // Only owners/trainers can use this panel. If a member's session is
+    // active (e.g. same browser), send them to the trainer login.
+    if (!profile || !["owner", "trainer"].includes(profile.role)) {
+      router.push(`/gym/${gymSlug}/login?role=trainer`);
+      return;
+    }
     setTrainerName(profile.full_name);
     setGymName((profile.gyms as any)?.name ?? "GymOS");
     setGymId(profile.gym_id);
@@ -281,7 +286,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
                 fontSize: "clamp(22px, 5vw, 30px)", color: "#FFFFFF",
                 letterSpacing: "-0.02em", margin: "0 0 24px",
               }}>
-                Hola, {trainerName.split(" ")[0]}
+                Hola, Profe
               </h1>
 
               {/* Stat cards — horizontal scroll */}
