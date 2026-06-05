@@ -90,10 +90,9 @@ export async function POST(
     const { error: signErr } = await ssr.auth.signInWithPassword({ email, password });
     if (signErr) console.error("Member sign-in error:", signErr.message);
 
-    // 5. Record attendance
-    await admin.from("attendance").insert({
-      gym_id: gym.id, member_id: profile.id, method: "app",
-    });
+    // NOTE: attendance is NOT recorded here. Opening the app is not training.
+    // It's recorded only when the member actually starts a workout
+    // (see /api/member/workout-session, action = "start").
 
     // 6. Build response with all cookies
     const sessionProfile = {

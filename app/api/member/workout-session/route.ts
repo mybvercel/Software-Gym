@@ -36,6 +36,21 @@ export async function POST(request: NextRequest) {
 
     if (!member) return Response.json({ error: "Alumno no encontrado." }, { status: 404 });
 
+    // Record attendance for TODAY (real training, not just opening the app).
+    // Deduped: only one attendance row per member per day.
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const { data: alreadyToday } = await admin
+      .from("attendance")
+      .select("id")
+      .eq("member_id", member_id)
+      .gte("checked_in_at", todayStart.toISOString())
+      .maybeSingle();
+    if (!alreadyToday) {
+      await admin.from("attendance").insert({
+        gym_id: member.gym_id, member_id, method: "app",
+      });
+    }
+
     const { data: staff } = await admin
       .from("profiles")
       .select("id")
