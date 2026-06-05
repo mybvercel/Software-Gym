@@ -151,7 +151,7 @@ export default function MemberOnboarding({ gymSlug }: Props) {
                       flex: 1, height: "42px", borderRadius: "10px", cursor: "pointer",
                       border: `1.5px solid ${gender === v ? "var(--lime)" : "var(--border-default)"}`,
                       background: gender === v ? "var(--lime-dim)" : "var(--bg-elevated)",
-                      fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "12px",
+                      fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px",
                       color: gender === v ? "var(--lime)" : "var(--text-secondary)",
                     }}
                   >{l}</button>
@@ -195,8 +195,8 @@ export default function MemberOnboarding({ gymSlug }: Props) {
                       background: active ? "var(--lime-dim)" : "var(--bg-elevated)",
                     }}>
                       <div>
-                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px", color: active ? "var(--lime)" : "var(--text-primary)", margin: 0 }}>{g.label}</p>
-                        <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "2px 0 0" }}>{g.desc}</p>
+                        <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "16px", color: active ? "var(--lime)" : "var(--text-primary)", margin: 0 }}>{g.label}</p>
+                        <p style={{ fontSize: "14px", color: "var(--text-muted)", margin: "2px 0 0" }}>{g.desc}</p>
                       </div>
                       {active && <Check size={16} color="var(--lime)" strokeWidth={3} />}
                     </button>
@@ -215,8 +215,8 @@ export default function MemberOnboarding({ gymSlug }: Props) {
                       border: `1.5px solid ${active ? "var(--lime)" : "var(--border-default)"}`,
                       background: active ? "var(--lime-dim)" : "var(--bg-elevated)",
                     }}>
-                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "13px", color: active ? "var(--lime)" : "var(--text-primary)", margin: "0 0 4px" }}>{l.label}</p>
-                      <p style={{ fontSize: "11px", color: "var(--text-muted)", margin: 0, lineHeight: 1.3 }}>{l.desc}</p>
+                      <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "15px", color: active ? "var(--lime)" : "var(--text-primary)", margin: "0 0 4px" }}>{l.label}</p>
+                      <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: 0, lineHeight: 1.3 }}>{l.desc}</p>
                     </button>
                   );
                 })}

@@ -7,6 +7,7 @@ import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
 import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper, Moon, Sun, MessageSquare, Send, Loader2 } from "lucide-react";
 import WorkoutCalendar from "./WorkoutCalendar";
 import GymLoader from "@/components/ui/GymLoader";
+import Tutorial from "@/components/ui/Tutorial";
 import { arWeekday, arFormat } from "@/lib/datetime";
 import dynamic from "next/dynamic";
 
@@ -36,6 +37,16 @@ export default function MemberDashboard({ gymSlug }: Props) {
   const [activeTab, setActiveTab] = useState<"home" | "exercises" | "progress" | "profile">("home");
   const [trainingStarted, setTrainingStarted] = useState(false);
   const router = useRouter();
+
+  // Tutorial (shown once on first visit)
+  const [showTutorial, setShowTutorial] = useState(false);
+  useEffect(() => {
+    if (localStorage.getItem("gymos_tutorial_seen") !== "1") setShowTutorial(true);
+  }, []);
+  const finishTutorial = () => {
+    localStorage.setItem("gymos_tutorial_seen", "1");
+    setShowTutorial(false);
+  };
 
   // Theme + feedback
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -165,6 +176,9 @@ export default function MemberDashboard({ gymSlug }: Props) {
       position: "relative",
     }}>
 
+      {/* ── TUTORIAL (primera vez) ── */}
+      {showTutorial && <Tutorial onFinish={finishTutorial} />}
+
       {/* ── EXERCISE DETAIL OVERLAY ── */}
       {selectedExercise && selectedExercise.exercise && (
         <div
@@ -234,14 +248,14 @@ export default function MemberDashboard({ gymSlug }: Props) {
                 Hola, {firstName} 👋
               </h1>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "14px", color: "var(--text-secondary)", fontWeight: 400 }}>
+                <span style={{ fontSize: "16px", color: "var(--text-secondary)", fontWeight: 400 }}>
                   {dateStr}
                 </span>
                 {todayDay && (
                   <span style={{
-                    fontSize: "12px", fontWeight: 700,
+                    fontSize: "13px", fontWeight: 700,
                     color: "var(--lime)", background: "var(--lime-dim)",
-                    padding: "3px 12px", borderRadius: "999px",
+                    padding: "4px 13px", borderRadius: "999px",
                     border: "1px solid rgba(158,255,0,0.25)",
                     textTransform: "uppercase", letterSpacing: "0.04em",
                   }}>
@@ -261,7 +275,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
                 <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)", fontSize: "17px", marginBottom: "8px" }}>
                   Aún no tenés rutina
                 </h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6 }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6 }}>
                   Tu profesor está preparando tu plan personalizado. Pronto lo verás acá.
                 </p>
               </div>
@@ -277,7 +291,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
                 <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)", fontSize: "17px", marginBottom: "8px" }}>
                   Hoy es día de descanso
                 </h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6 }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6 }}>
                   Tu rutina <strong style={{ color: "var(--text-primary)" }}>{routine.name}</strong> no tiene entrenamiento para hoy. Aprovechá para recuperar.
                 </p>
               </div>
@@ -307,11 +321,11 @@ export default function MemberDashboard({ gymSlug }: Props) {
                 <button
                   onClick={() => router.push(`/gym/${gymSlug}/dashboard/member/workout`)}
                   style={{
-                    width: "100%", height: "52px",
+                    width: "100%", height: "58px",
                     background: "var(--lime)",
                     border: "none", borderRadius: "12px",
                     fontFamily: "var(--font-display)",
-                    fontSize: "15px", fontWeight: 700,
+                    fontSize: "17px", fontWeight: 700,
                     color: "#000000", letterSpacing: "0.05em",
                     textTransform: "uppercase", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
@@ -321,7 +335,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--lime-hover)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--lime)"; (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)"; }}
                 >
-                  <Play size={16} fill="currentColor" />
+                  <Play size={18} fill="currentColor" />
                   Empezar Entrenamiento
                 </button>
               </div>
@@ -536,19 +550,38 @@ export default function MemberDashboard({ gymSlug }: Props) {
             <button
               onClick={() => router.push(`/gym/${gymSlug}/dashboard/member/health-profile`)}
               style={{
-                width: "100%", height: "48px",
+                width: "100%", height: "52px",
                 background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
                 borderRadius: "12px", cursor: "pointer",
-                fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "14px", color: "var(--text-primary)",
+                fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--text-primary)",
                 display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px",
                 marginBottom: "10px",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <ClipboardList size={16} color="var(--lime)" />
+                <ClipboardList size={18} color="var(--lime)" />
                 Cuestionario de salud
               </div>
-              <ChevronRight size={16} color="var(--text-muted)" />
+              <ChevronRight size={18} color="var(--text-muted)" />
+            </button>
+
+            {/* Ver tutorial de nuevo */}
+            <button
+              onClick={() => setShowTutorial(true)}
+              style={{
+                width: "100%", height: "52px",
+                background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
+                borderRadius: "12px", cursor: "pointer",
+                fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "16px", color: "var(--text-primary)",
+                display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px",
+                marginBottom: "10px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Play size={18} color="var(--lime)" />
+                Ver tutorial
+              </div>
+              <ChevronRight size={18} color="var(--text-muted)" />
             </button>
 
             {/* ── Apariencia (tema) ── */}
@@ -676,7 +709,7 @@ function InfoRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
       {icon}
-      <span style={{ fontSize: "15px", color: "#374151", fontWeight: 500 }}>{text}</span>
+      <span style={{ fontSize: "17px", color: "#374151", fontWeight: 500 }}>{text}</span>
     </div>
   );
 }
@@ -688,7 +721,7 @@ function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
       background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
     }}>
       <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>{icon}</div>
-      <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.6, margin: 0 }}>{text}</p>
+      <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6, margin: 0 }}>{text}</p>
     </div>
   );
 }
