@@ -11,6 +11,12 @@ import PaymentsPanel from "./PaymentsPanel";
 import NewMemberModal from "./NewMemberModal";
 import CSVImportModal from "./CSVImportModal";
 import { arDayStartISO, arDaysAgoStartISO, arFormat } from "@/lib/datetime";
+import dynamic from "next/dynamic";
+
+// Lazy-load the stats view (with its charts) only when the tab opens
+const TrainerStats = dynamic(() => import("./TrainerStats"), {
+  loading: () => <div style={{ padding: "60px 0", display: "flex", justifyContent: "center" }}><span className="gymos-spinner-lg" /></div>,
+});
 import {
   Home, Users, Dumbbell, Settings, LogOut,
   Search, Plus, ChevronRight, AlertCircle,
@@ -27,7 +33,7 @@ interface MemberWithStatus extends Profile {
   trainedThisWeek: boolean;
 }
 
-type Tab = "home" | "members" | "exercises" | "config";
+type Tab = "home" | "members" | "exercises" | "stats" | "config";
 
 /* ─────────────────────────── Avatar palette ── */
 
@@ -440,6 +446,17 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
       )}
 
       {/* ══════════════════════════════════
+          STATS TAB
+      ══════════════════════════════════ */}
+      {activeTab === "stats" && (
+        <div style={{ flex: 1, background: T.bg, paddingBottom: "90px" }}>
+          <div style={{ maxWidth: "640px", margin: "0 auto", padding: "28px 16px" }}>
+            <TrainerStats gymId={gymId} />
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════
           CONFIG TAB
       ══════════════════════════════════ */}
       {activeTab === "config" && (
@@ -490,10 +507,11 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
         display: "flex",
       }}>
         {([
-          { id: "home",      icon: Home,     label: "Home" },
-          { id: "members",   icon: Users,    label: "Alumnos" },
-          { id: "exercises", icon: Dumbbell, label: "Ejercicios" },
-          { id: "config",    icon: Settings, label: "Config" },
+          { id: "home",      icon: Home,      label: "Home" },
+          { id: "members",   icon: Users,     label: "Alumnos" },
+          { id: "exercises", icon: Dumbbell,  label: "Ejercicios" },
+          { id: "stats",     icon: BarChart2, label: "Stats" },
+          { id: "config",    icon: Settings,  label: "Config" },
         ] as { id: Tab; icon: React.ElementType; label: string }[]).map(({ id, icon: Icon, label }) => {
           const active = activeTab === id;
           return (

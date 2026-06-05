@@ -13,6 +13,12 @@ export function arWeekday(d: Date = new Date()): number {
   return map[wd] ?? 1;
 }
 
+/** Hora del día (0–23) para un instante, en hora de Córdoba. */
+export function arHour(d: Date = new Date()): number {
+  const h = new Intl.DateTimeFormat("en-US", { timeZone: AR_TZ, hour: "2-digit", hour12: false }).format(d);
+  return parseInt(h, 10) % 24;
+}
+
 /** Fecha YYYY-MM-DD para un instante, en hora de Córdoba. */
 export function arDateOnly(d: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
