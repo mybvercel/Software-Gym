@@ -8,6 +8,12 @@ import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRig
 import WorkoutCalendar from "./WorkoutCalendar";
 import GymLoader from "@/components/ui/GymLoader";
 import { arWeekday, arFormat } from "@/lib/datetime";
+import dynamic from "next/dynamic";
+
+// Lazy-load the progress view (with its charts) only when the tab opens
+const MemberProgress = dynamic(() => import("./MemberProgress"), {
+  loading: () => <div style={{ padding: "60px 0", display: "flex", justifyContent: "center" }}><GymLoader /></div>,
+});
 
 interface MemberSession {
   id: string;
@@ -492,19 +498,9 @@ export default function MemberDashboard({ gymSlug }: Props) {
           </div>
         )}
 
-        {/* ── PROGRESS TAB ── */}
+        {/* ── PROGRESS TAB (full progress view, embedded — bottom nav stays) ── */}
         {activeTab === "progress" && (
-          <div style={{ padding: "36px 20px 24px" }}>
-            <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "24px", color: "var(--text-primary)", letterSpacing: "-0.02em", margin: "0 0 20px" }}>
-              Tu evolución
-            </h2>
-            {measurements.length > 0 ? (
-              <WeightChart data={measurements} />
-            ) : (
-              <EmptyState icon={<TrendingUp size={34} color="var(--text-muted)" strokeWidth={1.5} />} text="Aún no hay mediciones. Tu profesor las irá cargando en cada evaluación." />
-            )}
-            <ProgressHistory memberId={session?.id} />
-          </div>
+          <MemberProgress gymSlug={gymSlug} embedded />
         )}
 
         {/* ── PROFILE TAB ── */}
@@ -653,7 +649,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
           return (
             <button
               key={id}
-              onClick={() => id === "progress" ? router.push(`/gym/${gymSlug}/dashboard/member/progress`) : setActiveTab(id)}
+              onClick={() => setActiveTab(id)}
               style={{
                 flex: 1, display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center", gap: "5px",

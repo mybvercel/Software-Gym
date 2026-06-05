@@ -87,7 +87,7 @@ function periodCutoff(p: Period): Date | null {
 
 /* ──────────────────────────── Component ── */
 
-export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
+export default function MemberProgress({ gymSlug, embedded = false }: { gymSlug: string; embedded?: boolean }) {
   const supabase = createClient();
   const router   = useRouter();
 
@@ -209,34 +209,55 @@ export default function MemberProgress({ gymSlug }: { gymSlug: string }) {
   })();
 
   /* ──────────────── LOADING ── */
-  if (isLoading) return <GymLoader fullScreen />;
+  if (isLoading) {
+    return embedded
+      ? <div style={{ padding: "60px 0", display: "flex", justifyContent: "center" }}><GymLoader /></div>
+      : <GymLoader fullScreen />;
+  }
 
   /* ──────────────── RENDER ── */
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-root)", fontFamily: "var(--font-body)" }}>
+    <div style={embedded
+      ? { fontFamily: "var(--font-body)" }
+      : { minHeight: "100vh", background: "var(--bg-root)", fontFamily: "var(--font-body)" }}>
 
       {/* ── HEADER ── */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 40,
-        background: "var(--bg-glass)", backdropFilter: "blur(20px)",
-        borderBottom: "1px solid var(--border-subtle)",
-        padding: "10px 16px", minHeight: "66px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
-      }}>
-        <BackButton onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)} tone="dark" />
-        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "18px", color: "var(--text-primary)" }}>
-          Mi Progreso
-        </span>
-        <button
-          onClick={() => setShowModal(true)}
-          className="gymos-btn gymos-btn-primary"
-          style={{ height: "46px", padding: "0 18px", fontSize: "15px", letterSpacing: "0.02em" }}
-        >
-          <Plus size={18} /> Registrar
-        </button>
-      </header>
+      {embedded ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", padding: "32px 16px 0", maxWidth: "640px", margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "24px", color: "var(--text-primary)", letterSpacing: "-0.02em", margin: 0 }}>
+            Mi Progreso
+          </h2>
+          <button
+            onClick={() => setShowModal(true)}
+            className="gymos-btn gymos-btn-primary"
+            style={{ height: "44px", padding: "0 16px", fontSize: "14px", letterSpacing: "0.02em" }}
+          >
+            <Plus size={16} /> Registrar
+          </button>
+        </div>
+      ) : (
+        <header style={{
+          position: "sticky", top: 0, zIndex: 40,
+          background: "var(--bg-glass)", backdropFilter: "blur(20px)",
+          borderBottom: "1px solid var(--border-subtle)",
+          padding: "10px 16px", minHeight: "66px",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
+        }}>
+          <BackButton onClick={() => router.push(`/gym/${gymSlug}/dashboard/member`)} tone="dark" />
+          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "18px", color: "var(--text-primary)" }}>
+            Mi Progreso
+          </span>
+          <button
+            onClick={() => setShowModal(true)}
+            className="gymos-btn gymos-btn-primary"
+            style={{ height: "46px", padding: "0 18px", fontSize: "15px", letterSpacing: "0.02em" }}
+          >
+            <Plus size={18} /> Registrar
+          </button>
+        </header>
+      )}
 
-      <main style={{ maxWidth: "640px", margin: "0 auto", padding: "24px 16px 60px", display: "flex", flexDirection: "column", gap: "32px" }}>
+      <main style={{ maxWidth: "640px", margin: "0 auto", padding: embedded ? "20px 16px 24px" : "24px 16px 60px", display: "flex", flexDirection: "column", gap: "32px" }}>
 
         {/* ══════════════════════════════════════════
             SECCIÓN 0 — CALENDARIO DE ASISTENCIA
