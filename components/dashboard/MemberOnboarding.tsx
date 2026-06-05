@@ -34,6 +34,7 @@ export default function MemberOnboarding({ gymSlug }: Props) {
     ? `${bYear}-${bMonth.padStart(2, "0")}-${bDay.padStart(2, "0")}`
     : "";
   const [gender,    setGender]    = useState("");
+  const [height,    setHeight]    = useState("");
 
   // Step 2 — goal + level
   const [goal,      setGoal]      = useState("");
@@ -65,6 +66,7 @@ export default function MemberOnboarding({ gymSlug }: Props) {
         member_id: session.id,
         birth_date: birthDate || null,
         gender: gender || null,
+        height_cm: height ? parseFloat(height) : null,
         goal,
         experience_level: level,
         days_per_week: daysWeek,
@@ -154,6 +156,25 @@ export default function MemberOnboarding({ gymSlug }: Props) {
                     }}
                   >{l}</button>
                 ))}
+              </div>
+            </Card>
+
+            <Card title="Altura">
+              <div style={{ position: "relative" }}>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="100"
+                  max="250"
+                  placeholder="Ej: 175"
+                  value={height}
+                  onChange={e => setHeight(e.target.value)}
+                  className="gymos-input"
+                  style={{ paddingRight: "48px" }}
+                />
+                <span style={{ position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)", fontSize: "15px", color: "var(--text-muted)", fontWeight: 600 }}>
+                  cm
+                </span>
               </div>
             </Card>
           </>

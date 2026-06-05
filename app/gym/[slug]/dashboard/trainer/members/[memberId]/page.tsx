@@ -36,6 +36,15 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
+function ageFromDate(iso: string): number {
+  const b = new Date(iso);
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+
 const GOAL_LABELS: Record<string,string> = { lose_weight:"Bajar de peso", gain_muscle:"Ganar músculo", tone:"Tonificar", endurance:"Resistencia", general_health:"Salud general" };
 const LEVEL_LABELS: Record<string,string> = { beginner:"Principiante", intermediate:"Intermedio", advanced:"Avanzado" };
 
@@ -134,6 +143,13 @@ export default function MemberDetailPage() {
               <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", margin: 0 }}>
                 DNI {member.dni ?? "—"} · {member.is_active ? "Activo" : "Inactivo"}
               </p>
+              {(member.height_cm || member.birth_date) && (
+                <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", margin: "2px 0 0" }}>
+                  {member.height_cm ? `${member.height_cm} cm` : ""}
+                  {member.height_cm && member.birth_date ? " · " : ""}
+                  {member.birth_date ? `${ageFromDate(member.birth_date)} años` : ""}
+                </p>
+              )}
             </div>
           </div>
 

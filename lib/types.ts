@@ -28,6 +28,7 @@ export interface Profile {
   avatar_url?: string;
   birth_date?: string;
   gender?: "male" | "female" | "other";
+  height_cm?: number;
   dni?: string;
   is_active: boolean;
   onboarding_completed: boolean;

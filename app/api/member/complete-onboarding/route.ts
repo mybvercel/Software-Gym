@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
       member_id,
       birth_date,
       gender,
+      height_cm,
       goal,
       experience_level,
       days_per_week,
@@ -27,6 +28,15 @@ export async function POST(request: NextRequest) {
         onboarding_completed: true,
       })
       .eq("id", member_id);
+
+    // Save height separately so a missing height_cm column never breaks onboarding
+    if (height_cm != null) {
+      const { error: hErr } = await admin
+        .from("profiles")
+        .update({ height_cm })
+        .eq("id", member_id);
+      if (hErr) console.warn("height_cm not saved (¿falta la columna?):", hErr.message);
+    }
 
     // Upsert member_goals
     await admin.from("member_goals").upsert(
