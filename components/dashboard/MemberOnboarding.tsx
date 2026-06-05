@@ -27,7 +27,12 @@ export default function MemberOnboarding({ gymSlug }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1 — personal data
-  const [birthDate, setBirthDate] = useState("");
+  const [bDay,   setBDay]   = useState("");
+  const [bMonth, setBMonth] = useState("");
+  const [bYear,  setBYear]  = useState("");
+  const birthDate = (bDay && bMonth && bYear)
+    ? `${bYear}-${bMonth.padStart(2, "0")}-${bDay.padStart(2, "0")}`
+    : "";
   const [gender,    setGender]    = useState("");
 
   // Step 2 — goal + level
@@ -108,13 +113,26 @@ export default function MemberOnboarding({ gymSlug }: Props) {
         {step === 1 && (
           <>
             <Card title="Fecha de nacimiento">
-              <input
-                type="date"
-                value={birthDate}
-                onChange={e => setBirthDate(e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
-                className="gymos-input"
-              />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: "8px" }}>
+                <select className="gymos-select" value={bDay} onChange={e => setBDay(e.target.value)}>
+                  <option value="">Día</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                    <option key={d} value={String(d)}>{d}</option>
+                  ))}
+                </select>
+                <select className="gymos-select" value={bMonth} onChange={e => setBMonth(e.target.value)}>
+                  <option value="">Mes</option>
+                  {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m, i) => (
+                    <option key={m} value={String(i + 1)}>{m}</option>
+                  ))}
+                </select>
+                <select className="gymos-select" value={bYear} onChange={e => setBYear(e.target.value)}>
+                  <option value="">Año</option>
+                  {Array.from({ length: 84 }, (_, i) => new Date().getFullYear() - 10 - i).map(y => (
+                    <option key={y} value={String(y)}>{y}</option>
+                  ))}
+                </select>
+              </div>
             </Card>
 
             <Card title="Género">

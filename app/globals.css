@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,9 +44,9 @@
   --text-muted: #484F58;
   --text-inverse: #06080E;
 
-  /* ── FONTS ── */
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  /* ── FONTS (cargadas con next/font, ver layout.tsx) ── */
+  --font-display: var(--font-display-next), 'Space Grotesk', system-ui, sans-serif;
+  --font-body: var(--font-body-next), 'Inter', system-ui, sans-serif;
 
   /* ── RADII ── */
   --r-sm: 8px;
@@ -102,6 +100,15 @@
   --shadow-card: 0 1px 3px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.06);
   --shadow-elevated: 0 8px 30px rgba(15,23,42,0.12);
   --shadow-modal: 0 16px 60px rgba(15,23,42,0.18);
+}
+
+/* ── Theme switch animation ──
+   Smooth cross-fade of the whole page when toggling light/dark.
+   Uses the View Transitions API in supporting browsers. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── RESETS ── */

@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted, preloaded fonts (no render-blocking @import)
+const display = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display-next",
+  display: "swap",
+});
+const body = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body-next",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "GymOS — Sistema Digital para Gimnasios",
@@ -12,10 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Apply saved theme before paint to avoid a flash */}
         <script
           dangerouslySetInnerHTML={{

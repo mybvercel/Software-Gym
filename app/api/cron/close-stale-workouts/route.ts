@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { arDateOnly } from "@/lib/datetime";
 
 const STALE_HOURS = 3;
 
@@ -78,7 +79,7 @@ export async function POST() {
         comment: "Sesión cerrada automáticamente (no se marcó como terminada).",
         day_name: (meta as any)?.day_name ?? null,
         exercises_done: exercisesDone ?? 0,
-        session_date: new Date(startedAt).toISOString().split("T")[0],
+        session_date: arDateOnly(new Date(startedAt)),
       };
 
       const rows = (staff ?? []).map((s) => ({

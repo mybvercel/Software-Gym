@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
+import { arDateOnly } from "@/lib/datetime";
 
 const MOOD_LABELS: Record<string, string> = {
   great: "Muy bien", good: "Bien", normal: "Normal",
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       exercises_done: exercises_done ?? null,
       total_volume_kg: total_volume_kg ?? null,
       duration_min: duration_min ?? null,
-      session_date: new Date().toISOString().split("T")[0],
+      session_date: arDateOnly(),
     };
 
     const title = `${member.full_name} completó su sesión${day_name ? ` (${day_name})` : ""}`;

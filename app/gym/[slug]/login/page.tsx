@@ -5,6 +5,7 @@ import { Dumbbell, ClipboardList } from "lucide-react";
 import MemberAccessForm from "@/components/auth/MemberAccessForm";
 import TrainerLoginForm from "@/components/auth/TrainerLoginForm";
 import BackButton from "@/components/ui/BackButton";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const GYM_NAMES: Record<string, string> = {
   antigravity: "Antigravity Gym",
@@ -36,9 +37,10 @@ export default function LoginPage() {
       padding: "24px 16px",
     }}>
 
-      {/* Volver */}
-      <div style={{ width: "100%", maxWidth: "420px", marginBottom: "20px" }}>
+      {/* Volver + toggle de tema */}
+      <div style={{ width: "100%", maxWidth: "420px", marginBottom: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
         <BackButton onClick={() => router.push(`/gym/${slug}`)} label="Volver a roles" tone="dark" />
+        <ThemeToggle />
       </div>
 
       {/* Card */}

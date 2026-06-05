@@ -10,6 +10,7 @@ import ExerciseLibrary from "./ExerciseLibrary";
 import PaymentsPanel from "./PaymentsPanel";
 import NewMemberModal from "./NewMemberModal";
 import CSVImportModal from "./CSVImportModal";
+import { arDayStartISO, arDaysAgoStartISO, arFormat } from "@/lib/datetime";
 import {
   Home, Users, Dumbbell, Settings, LogOut,
   Search, Plus, ChevronRight, AlertCircle,
@@ -83,8 +84,8 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
   const [showCSVImport,  setShowCSVImport]  = useState(false);
   const [trainingNow,    setTrainingNow]    = useState(0);
 
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const weekStart  = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+  const todayStartISO = arDayStartISO();          // medianoche Córdoba
+  const weekStartISO  = arDaysAgoStartISO(7);      // hace 7 días, Córdoba
 
   /* ── Load ── */
   useEffect(() => { init(); }, []);
@@ -136,7 +137,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
       { data: paymentsData },
     ] = await Promise.all([
       supabase.from("profiles").select("*").eq("gym_id", gid).eq("role", "member").order("full_name"),
-      supabase.from("attendance").select("member_id, checked_in_at").eq("gym_id", gid).gte("checked_in_at", weekStart.toISOString()),
+      supabase.from("attendance").select("member_id, checked_in_at").eq("gym_id", gid).gte("checked_in_at", weekStartISO),
       supabase.from("payments").select("member_id, status, period_to").eq("gym_id", gid).order("period_to", { ascending: false }),
     ]);
 
@@ -146,7 +147,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
 
     // Build attendance maps
     const trainedTodaySet = new Set(
-      attendance.filter(a => new Date(a.checked_in_at) >= todayStart).map(a => a.member_id)
+      attendance.filter(a => a.checked_in_at >= todayStartISO).map(a => a.member_id)
     );
     const trainedWeekSet  = new Set(attendance.map(a => a.member_id));
 
@@ -206,9 +207,7 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
     m.dni?.includes(search)
   );
 
-  const dateStr = new Date().toLocaleDateString("es-AR", {
-    weekday: "long", day: "numeric", month: "long",
-  });
+  const dateStr = arFormat(new Date(), { weekday: "long", day: "numeric", month: "long" });
 
   /* ══════════ RENDER ══════════ */
 

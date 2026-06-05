@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
+import { arDayStartISO } from "@/lib/datetime";
 
 /**
  * Tracks a member's LIVE training session so the trainer panel can show
@@ -37,13 +38,12 @@ export async function POST(request: NextRequest) {
     if (!member) return Response.json({ error: "Alumno no encontrado." }, { status: 404 });
 
     // Record attendance for TODAY (real training, not just opening the app).
-    // Deduped: only one attendance row per member per day.
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    // Deduped: only one attendance row per member per day (Córdoba).
     const { data: alreadyToday } = await admin
       .from("attendance")
       .select("id")
       .eq("member_id", member_id)
-      .gte("checked_in_at", todayStart.toISOString())
+      .gte("checked_in_at", arDayStartISO())
       .maybeSingle();
     if (!alreadyToday) {
       await admin.from("attendance").insert({

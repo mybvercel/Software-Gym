@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ChevronLeft, ChevronRight, Check, Calendar as CalIcon } from "lucide-react";
+import { arDateOnly } from "@/lib/datetime";
 
 /* ── Muscle-group color palette (matched loosely by name) ── */
 const MUSCLE_COLORS: { key: string; color: string }[] = [
@@ -59,8 +60,9 @@ export default function WorkoutCalendar({ memberId }: { memberId: string }) {
       setRoutineDays((routine.routine_days ?? []) as RoutineDay[]);
     }
     const days = new Set<string>();
-    (att ?? []).forEach((a: { checked_in_at: string }) => days.add(a.checked_in_at.split("T")[0]));
-    (logs ?? []).forEach((l: { logged_at: string }) => days.add(l.logged_at.split("T")[0]));
+    // Map each timestamp to its Córdoba calendar day
+    (att ?? []).forEach((a: { checked_in_at: string }) => days.add(arDateOnly(new Date(a.checked_in_at))));
+    (logs ?? []).forEach((l: { logged_at: string }) => days.add(arDateOnly(new Date(l.logged_at))));
     setAttended(days);
     setIsLoading(false);
   };

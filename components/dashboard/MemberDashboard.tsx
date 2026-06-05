@@ -7,6 +7,7 @@ import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
 import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper, Moon, Sun, MessageSquare, Send, Loader2 } from "lucide-react";
 import WorkoutCalendar from "./WorkoutCalendar";
 import GymLoader from "@/components/ui/GymLoader";
+import { arWeekday, arFormat } from "@/lib/datetime";
 
 interface MemberSession {
   id: string;
@@ -100,10 +101,8 @@ export default function MemberDashboard({ gymSlug }: Props) {
         setRoutine(routineData);
         const days = routineData.routine_days ?? [];
         if (days.length > 0) {
-          // day_number stores the ISO weekday (1=Mon … 7=Sun).
-          // Show today's workout only if a training day matches today.
-          const jsDay = new Date().getDay();          // 0=Sun … 6=Sat
-          const todayISO = jsDay === 0 ? 7 : jsDay;    // 1=Mon … 7=Sun
+          // day_number stores the ISO weekday (1=Mon … 7=Sun), en hora de Córdoba.
+          const todayISO = arWeekday();
           const match = days.find((d: RoutineDay) => d.day_number === todayISO);
           setTodayDay(match ?? null);                  // null → rest day
         }
@@ -148,7 +147,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
   const totalMinutes = exercises.length * 6;
   const progress = exercises.length > 0 ? Math.round((completedExercises.size / exercises.length) * 100) : 0;
   const firstName = session?.name?.split(" ")[0] ?? "Atleta";
-  const dateStr = new Date().toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+  const dateStr = arFormat(new Date(), { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div style={{

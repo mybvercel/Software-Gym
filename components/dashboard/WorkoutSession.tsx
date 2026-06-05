@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 import GymLoader from "@/components/ui/GymLoader";
+import { arWeekday } from "@/lib/datetime";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -145,9 +146,8 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       const days = (routine.routine_days ?? []) as any[];
       if (days.length === 0) { setIsLoading(false); return; }
 
-      // day_number = ISO weekday (1=Mon … 7=Sun). Match today; fall back to first day.
-      const jsDay = new Date().getDay();
-      const todayISO = jsDay === 0 ? 7 : jsDay;
+      // day_number = ISO weekday (1=Mon … 7=Sun) en hora de Córdoba.
+      const todayISO = arWeekday();
       const sorted = [...days].sort((a, b) => a.day_number - b.day_number);
       const today = sorted.find(d => d.day_number === todayISO) ?? sorted[0];
 

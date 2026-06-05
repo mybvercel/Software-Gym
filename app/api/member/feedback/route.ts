@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
+import { arDateOnly } from "@/lib/datetime";
 
 /** General feedback / suggestion from a member to the gym (trainer sees it). */
 export async function POST(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
       kind: "general",
       comment: comment.trim(),
       rating: rating ?? null,
-      session_date: new Date().toISOString().split("T")[0],
+      session_date: arDateOnly(),
     };
 
     const rows = (staff ?? []).map((s) => ({

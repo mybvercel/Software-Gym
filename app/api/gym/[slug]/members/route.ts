@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
 import { deriveMemberPassword, memberAuthEmail } from "@/lib/session";
+import { arDateOnly } from "@/lib/datetime";
 
 /**
  * Creates a member as a real Supabase Auth user.
@@ -61,9 +62,9 @@ async function createMember(
     return "error";
   }
 
-  // Initial 30-day subscription
-  const today = new Date().toISOString().split("T")[0];
-  const end = new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
+  // Initial 30-day subscription (fechas en Córdoba)
+  const today = arDateOnly();
+  const end = arDateOnly(new Date(Date.now() + 30 * 86400000));
   await admin.from("payments").insert({
     gym_id: gymId,
     member_id: authUser.user.id,
