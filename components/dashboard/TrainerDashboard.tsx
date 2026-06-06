@@ -10,6 +10,7 @@ import ExerciseLibrary from "./ExerciseLibrary";
 import PaymentsPanel from "./PaymentsPanel";
 import NewMemberModal from "./NewMemberModal";
 import CSVImportModal from "./CSVImportModal";
+import TrainerActions from "./TrainerActions";
 import { arDayStartISO, arDaysAgoStartISO, arFormat } from "@/lib/datetime";
 import dynamic from "next/dynamic";
 
@@ -326,6 +327,9 @@ export default function TrainerDashboard({ gymSlug }: { gymSlug: string }) {
           {/* White content */}
           <div style={{ flex: 1, background: T.bg, paddingBottom: "80px" }}>
             <div style={{ maxWidth: "640px", margin: "0 auto", padding: "24px 16px" }}>
+
+              {/* Acciones del día */}
+              <TrainerActions gymId={gymId} />
 
               {/* Section header */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>

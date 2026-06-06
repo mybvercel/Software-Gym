@@ -12,7 +12,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import {
   ClipboardList, Dumbbell, TrendingUp,
   CheckCircle, Clock, Calendar, Scale, ChevronDown, ChevronUp,
-  Plus, Pencil, X, MessageSquare, ArrowUp, ArrowDown, Minus,
+  Plus, Pencil, X, MessageSquare, ArrowUp, ArrowDown, Minus, FileDown,
 } from "lucide-react";
 
 const WEEKDAY_NAMES: Record<number, string> = {
@@ -34,6 +34,72 @@ const AVATAR_COLORS = ["#3B82F6","#8B5CF6","#EC4899","#F59E0B","#10B981","#EF444
 function avatarColor(name: string) {
   let h = 0; for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
+const WEEKDAY_FULL: Record<number, string> = {
+  1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 7: "Domingo",
+};
+
+/** Genera un PDF prolijo de la rutina usando la impresión nativa del navegador. */
+function exportRoutinePDF(routine: any, memberName: string) {
+  const days = [...(routine.routine_days ?? [])].sort((a: any, b: any) => a.day_number - b.day_number);
+  const esc = (s: string) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
+  const today = new Date().toLocaleDateString("es-AR", { timeZone: "America/Argentina/Cordoba", day: "numeric", month: "long", year: "numeric" });
+
+  const daysHtml = days.map((d: any) => {
+    const exs = [...(d.routine_exercises ?? [])].sort((a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    const rowsHtml = exs.map((re: any, i: number) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td>${esc(re.exercise?.name ?? "Ejercicio")}${re.notes ? `<div class="note">${esc(re.notes)}</div>` : ""}</td>
+        <td class="c">${re.sets}×${esc(re.reps)}</td>
+        <td class="c">${re.rest_seconds}s</td>
+      </tr>`).join("");
+    return `
+      <div class="day">
+        <h2>${esc(WEEKDAY_FULL[d.day_number] ?? `Día ${d.day_number}`)}${d.name ? ` — ${esc(d.name)}` : ""}</h2>
+        <table>
+          <thead><tr><th class="num">#</th><th>Ejercicio</th><th class="c">Series×Reps</th><th class="c">Descanso</th></tr></thead>
+          <tbody>${rowsHtml || `<tr><td colspan="4" class="empty">Sin ejercicios</td></tr>`}</tbody>
+        </table>
+      </div>`;
+  }).join("");
+
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Rutina - ${esc(memberName)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #0F172A; margin: 0; padding: 32px; }
+    .header { border-bottom: 3px solid #16A34A; padding-bottom: 14px; margin-bottom: 22px; }
+    .brand { color: #16A34A; font-weight: 800; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+    h1 { font-size: 26px; margin: 6px 0 2px; }
+    .meta { color: #64748B; font-size: 13px; }
+    .day { margin-bottom: 20px; page-break-inside: avoid; }
+    .day h2 { font-size: 16px; color: #16A34A; margin: 0 0 8px; border-left: 4px solid #16A34A; padding-left: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #E2E8F0; font-size: 13px; vertical-align: top; }
+    th { background: #F1F5F9; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #475569; }
+    .num { width: 34px; text-align: center; color: #94A3B8; }
+    .c { text-align: center; white-space: nowrap; font-weight: 600; }
+    .note { color: #64748B; font-size: 11px; margin-top: 2px; font-style: italic; }
+    .empty { text-align: center; color: #94A3B8; }
+    .footer { margin-top: 26px; color: #94A3B8; font-size: 11px; text-align: center; }
+    @media print { body { padding: 16px; } }
+  </style></head><body>
+    <div class="header">
+      <div class="brand">GymOS</div>
+      <h1>${esc(routine.name ?? "Rutina")}</h1>
+      <div class="meta">Alumno: <strong>${esc(memberName)}</strong> · Generado el ${esc(today)}</div>
+    </div>
+    ${daysHtml}
+    <div class="footer">Generado con GymOS</div>
+  </body></html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 350);
 }
 
 function ageFromDate(iso: string): number {
@@ -211,9 +277,12 @@ export default function MemberDetailPage() {
             </div>
           ) : (
             <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "15px", color: T.text, margin: 0 }}>{routine.name}</p>
-                <button onClick={() => setShowBuilder(true)} style={{ display: "flex", alignItems: "center", gap: "5px", background: T.greenDim, border: `1px solid ${T.greenBorder}`, borderRadius: "8px", padding: "5px 10px", cursor: "pointer", color: T.green, fontSize: "12px", fontWeight: 700, fontFamily: T.font }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", gap: "8px" }}>
+                <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "15px", color: T.text, margin: 0, flex: 1, minWidth: 0 }}>{routine.name}</p>
+                <button onClick={() => exportRoutinePDF(routine, member.full_name)} style={{ display: "flex", alignItems: "center", gap: "5px", background: T.bg, border: `1px solid ${T.border}`, borderRadius: "8px", padding: "5px 10px", cursor: "pointer", color: T.muted, fontSize: "12px", fontWeight: 700, fontFamily: T.font, flexShrink: 0 }}>
+                  <FileDown size={12} /> PDF
+                </button>
+                <button onClick={() => setShowBuilder(true)} style={{ display: "flex", alignItems: "center", gap: "5px", background: T.greenDim, border: `1px solid ${T.greenBorder}`, borderRadius: "8px", padding: "5px 10px", cursor: "pointer", color: T.green, fontSize: "12px", fontWeight: 700, fontFamily: T.font, flexShrink: 0 }}>
                   <Pencil size={12} /> Editar
                 </button>
               </div>
@@ -298,25 +367,42 @@ export default function MemberDetailPage() {
           {logs.length === 0 ? (
             <p style={{ fontSize: "13px", color: T.muted, padding: "4px 0" }}>Sin sesiones registradas.</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {logs.slice(0, 10).map((log, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px", background: T.bg, borderRadius: "10px" }}>
-                  <CheckCircle size={14} color={T.green} style={{ flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontFamily: T.font, fontWeight: 600, fontSize: "13px", color: T.text, margin: 0 }}>
-                      {(log.exercise as any)?.name ?? "Ejercicio"}
-                    </p>
-                    <p style={{ fontSize: "11px", color: T.muted, margin: "2px 0 0" }}>
-                      {new Date(log.logged_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
-                    </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {logs.slice(0, 12).map((log, i) => {
+                const rpe = log.perceived_effort as number | undefined;
+                const rpeColor = rpe == null ? T.muted : rpe <= 3 ? "#16A34A" : rpe <= 6 ? T.green : rpe <= 8 ? T.orange : T.red;
+                return (
+                  <div key={i} style={{ padding: "11px 13px", background: T.bg, borderRadius: "11px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <CheckCircle size={15} color={T.green} style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: T.font, fontWeight: 700, fontSize: "14px", color: T.text, margin: 0 }}>
+                          {(log.exercise as any)?.name ?? "Ejercicio"}
+                        </p>
+                        <p style={{ fontSize: "12px", color: T.muted, margin: "2px 0 0" }}>
+                          {new Date(log.logged_at).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                          {log.reps_completed ? ` · ${log.reps_completed} reps` : ""}
+                        </p>
+                      </div>
+                      {log.weight_kg && (
+                        <span style={{ fontFamily: T.font, fontWeight: 800, fontSize: "15px", color: T.green, flexShrink: 0 }}>
+                          {log.weight_kg}kg
+                        </span>
+                      )}
+                      {rpe != null && (
+                        <span title="Esfuerzo percibido (1-10)" style={{ flexShrink: 0, fontFamily: T.font, fontWeight: 800, fontSize: "12px", color: rpeColor, background: `${rpeColor}1A`, borderRadius: "999px", padding: "3px 9px" }}>
+                          RPE {rpe}
+                        </span>
+                      )}
+                    </div>
+                    {log.notes && (
+                      <p style={{ fontSize: "13px", color: T.text, margin: "8px 0 0", lineHeight: 1.5, fontStyle: "italic", paddingLeft: "25px" }}>
+                        "{log.notes}"
+                      </p>
+                    )}
                   </div>
-                  {log.weight_kg && (
-                    <span style={{ fontFamily: T.font, fontWeight: 700, fontSize: "13px", color: T.green }}>
-                      {log.weight_kg}kg
-                    </span>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Accordion>

@@ -5,13 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { Clock, CalendarDays, Users, TrendingUp } from "lucide-react";
-import { arHour, arWeekday, arDaysAgoStartISO } from "@/lib/datetime";
+import { Clock, CalendarDays, Users, TrendingUp, UserPlus, DollarSign, Activity, CreditCard } from "lucide-react";
+import { arHour, arWeekday, arDaysAgoStartISO, arDateOnly } from "@/lib/datetime";
 
 const T = {
   navy: "#0D1B2A", green: "#22C55E", greenDim: "rgba(34,197,94,0.10)",
   greenBorder: "rgba(34,197,94,0.28)", card: "#FFFFFF", bg: "#F1F5F9",
   border: "#E2E8F0", text: "#0F172A", muted: "#64748B", light: "#94A3B8",
+  red: "#EF4444",
   font: "'Space Grotesk', system-ui, sans-serif",
 };
 
@@ -26,7 +27,46 @@ export default function TrainerStats({ gymId }: { gymId: string | null }) {
   const [rows, setRows] = useState<string[]>([]); // checked_in_at timestamps
   const [isLoading, setIsLoading] = useState(true);
 
+  // Business data (loaded once, independent of the attendance period)
+  const [biz, setBiz] = useState<{
+    total: number; active: number; newThisMonth: number; trained30: number;
+    revenue: number; duesOk: number; duesExpired: number;
+  } | null>(null);
+
   useEffect(() => { if (gymId) load(); }, [gymId, period]);
+  useEffect(() => { if (gymId) loadBiz(); }, [gymId]);
+
+  const loadBiz = async () => {
+    const monthStartISO = `${arDateOnly().slice(0, 7)}-01T03:00:00.000Z`;
+    const [{ data: members }, { data: pays }, { data: att30 }] = await Promise.all([
+      supabase.from("profiles").select("id, is_active, created_at").eq("gym_id", gymId!).eq("role", "member"),
+      supabase.from("payments").select("member_id, amount, status, paid_at, period_to").eq("gym_id", gymId!).order("period_to", { ascending: false }),
+      supabase.from("attendance").select("member_id").eq("gym_id", gymId!).gte("checked_in_at", arDaysAgoStartISO(30)),
+    ]);
+    const ms = members ?? [];
+    const active = ms.filter(m => m.is_active).length;
+    const newThisMonth = ms.filter(m => m.created_at >= monthStartISO).length;
+    const trained30 = new Set((att30 ?? []).map((a: any) => a.member_id)).size;
+
+    const revenue = (pays ?? [])
+      .filter((p: any) => p.status === "approved" && p.paid_at && p.paid_at >= monthStartISO)
+      .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+
+    // latest payment per member → cuota al día / vencida
+    const lastPay = new Map<string, any>();
+    for (const p of (pays ?? [])) if (!lastPay.has(p.member_id)) lastPay.set(p.member_id, p);
+    const today = arDateOnly();
+    let duesOk = 0, duesExpired = 0;
+    for (const m of ms) {
+      if (!m.is_active) continue;
+      const p = lastPay.get(m.id);
+      if (p?.status === "approved" && p.period_to) {
+        if (p.period_to >= today) duesOk++; else duesExpired++;
+      }
+    }
+
+    setBiz({ total: ms.length, active, newThisMonth, trained30, revenue, duesOk, duesExpired });
+  };
 
   const load = async () => {
     setIsLoading(true);
@@ -67,12 +107,35 @@ export default function TrainerStats({ gymId }: { gymId: string | null }) {
 
   const periodLabel = period === "week" ? "última semana" : period === "month" ? "último mes" : "histórico";
 
+  const fmtMoney = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `$${n}`;
+
   return (
     <div style={{ fontFamily: T.font }}>
+      <h2 style={{ fontFamily: T.font, fontWeight: 800, fontSize: "22px", color: T.text, margin: "0 0 16px" }}>
+        Estadísticas
+      </h2>
+
+      {/* ── Resumen del negocio ── */}
+      {biz && (
+        <div style={{ marginBottom: "24px" }}>
+          <p style={{ fontSize: "13px", fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px" }}>
+            Resumen del negocio
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
+            <BizCard icon={<Users size={16} />} value={`${biz.active}`} label={`alumnos activos (${biz.total} en total)`} />
+            <BizCard icon={<UserPlus size={16} />} value={`${biz.newThisMonth}`} label="altas este mes" color={T.green} />
+            <BizCard icon={<DollarSign size={16} />} value={fmtMoney(biz.revenue)} label="ingresos del mes" color={T.green} />
+            <BizCard icon={<Activity size={16} />} value={`${biz.active > 0 ? Math.round((biz.trained30 / biz.active) * 100) : 0}%`} label="entrenó últimos 30 días" />
+            <BizCard icon={<CreditCard size={16} />} value={`${biz.duesOk}`} label="cuotas al día" color={T.green} />
+            <BizCard icon={<CreditCard size={16} />} value={`${biz.duesExpired}`} label="cuotas vencidas" color={biz.duesExpired > 0 ? T.red : T.light} />
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-        <h2 style={{ fontFamily: T.font, fontWeight: 800, fontSize: "22px", color: T.text, margin: 0 }}>
-          Estadísticas
-        </h2>
+        <h3 style={{ fontFamily: T.font, fontWeight: 800, fontSize: "18px", color: T.text, margin: 0 }}>
+          Asistencia
+        </h3>
         <div style={{ display: "flex", gap: "6px" }}>
           {([["week", "Semana"], ["month", "Mes"], ["all", "Todo"]] as [Period, string][]).map(([p, l]) => (
             <button key={p} onClick={() => setPeriod(p)} style={{
@@ -154,6 +217,18 @@ export default function TrainerStats({ gymId }: { gymId: string | null }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function BizCard({ icon, value, label, color }: { icon: React.ReactNode; value: string; label: string; color?: string }) {
+  return (
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: "14px", padding: "14px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+        <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: T.greenDim, display: "flex", alignItems: "center", justifyContent: "center", color: color ?? T.green }}>{icon}</span>
+      </div>
+      <p style={{ fontFamily: T.font, fontWeight: 800, fontSize: "22px", color: color ?? T.text, margin: "0 0 2px", lineHeight: 1 }}>{value}</p>
+      <p style={{ fontSize: "12px", color: T.muted, margin: 0, lineHeight: 1.3 }}>{label}</p>
     </div>
   );
 }
