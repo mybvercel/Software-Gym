@@ -300,22 +300,23 @@ export default function MemberDashboard({ gymSlug }: Props) {
             {/* Workout card */}
             {routine && todayDay && !trainingStarted && (
               <div style={{
-                background: "#FFFFFF",
+                background: "var(--bg-card)",
+                border: "1px solid var(--border-subtle)",
                 borderRadius: "20px",
                 padding: "24px",
-                boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
+                boxShadow: "var(--shadow-elevated)",
               }}>
                 <h2 style={{
                   fontFamily: "var(--font-display)", fontWeight: 800,
-                  fontSize: "20px", color: "#0F172A",
+                  fontSize: "20px", color: "var(--text-primary)",
                   letterSpacing: "-0.02em", margin: "0 0 18px",
                 }}>
                   {routine.name}
                 </h2>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
-                  <InfoRow icon={<Dumbbell size={17} color="#374151" />} text={`${exercises.length} Ejercicio${exercises.length !== 1 ? "s" : ""}`} />
-                  <InfoRow icon={<Clock size={17} color="#374151" />} text={`${totalMinutes} minutos aprox.`} />
+                  <InfoRow icon={<Dumbbell size={17} color="var(--text-secondary)" />} text={`${exercises.length} Ejercicio${exercises.length !== 1 ? "s" : ""}`} />
+                  <InfoRow icon={<Clock size={17} color="var(--text-secondary)" />} text={`${totalMinutes} minutos aprox.`} />
                 </div>
 
                 <button
@@ -326,7 +327,7 @@ export default function MemberDashboard({ gymSlug }: Props) {
                     border: "none", borderRadius: "12px",
                     fontFamily: "var(--font-display)",
                     fontSize: "17px", fontWeight: 700,
-                    color: "#000000", letterSpacing: "0.05em",
+                    color: "var(--text-inverse)", letterSpacing: "0.05em",
                     textTransform: "uppercase", cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                     boxShadow: "var(--lime-glow)",
@@ -709,7 +710,7 @@ function InfoRow({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
       {icon}
-      <span style={{ fontSize: "17px", color: "#374151", fontWeight: 500 }}>{text}</span>
+      <span style={{ fontSize: "17px", color: "var(--text-secondary)", fontWeight: 500 }}>{text}</span>
     </div>
   );
 }

@@ -110,7 +110,9 @@ export default function MemberProgress({ gymSlug, embedded = false }: { gymSlug:
   const [exProgress, setExProgress] = useState<ExerciseProgress[]>([]);
   const [exercises,  setExercises]  = useState<{ id: string; name: string }[]>([]);
   const [showLogModal, setShowLogModal] = useState(false);
-  const [logEx,    setLogEx]    = useState("");
+  const [logQuery, setLogQuery] = useState("");          // typed / selected exercise name
+  const [logExId,  setLogExId]  = useState<string | null>(null);
+  const [showExList, setShowExList] = useState(false);
   const [logWeight,setLogWeight]= useState("");
   const [logReps,  setLogReps]  = useState("");
   const [savingLog,setSavingLog]= useState(false);
@@ -124,8 +126,8 @@ export default function MemberProgress({ gymSlug, embedded = false }: { gymSlug:
     loadAll(s.id);
   }, [gymSlug]);
 
-  const loadAll = async (memberId: string) => {
-    setIsLoading(true);
+  const loadAll = async (memberId: string, silent = false) => {
+    if (!silent) setIsLoading(true);   // silent reload keeps scroll position after saving
     const [{ data: meas }, { data: logs }, { data: exs }] = await Promise.all([
       supabase
         .from("body_measurements")
@@ -176,24 +178,29 @@ export default function MemberProgress({ gymSlug, embedded = false }: { gymSlug:
     setSaveOk(true);
     setFormData({});
     setTimeout(() => { setSaveOk(false); setShowModal(false); }, 1500);
-    loadAll(session.id);
+    loadAll(session.id, true);   // silent → no scroll jump
   };
 
   /* ── Save a manual weight entry for an exercise ── */
   const saveManualLog = async () => {
-    if (!session || !logEx || !logWeight) return;
+    if (!session || !logQuery.trim() || !logWeight) return;
     setSavingLog(true);
-    await supabase.from("progress_logs").insert({
-      member_id: session.id,
-      exercise_id: logEx,
-      weight_kg: parseFloat(logWeight),
-      reps_completed: logReps || null,
-      logged_at: new Date().toISOString(),
+    await fetch("/api/member/log-weight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        member_id: session.id,
+        exercise_id: logExId ?? undefined,
+        exercise_name: logExId ? undefined : logQuery.trim(),
+        weight_kg: parseFloat(logWeight),
+        reps: logReps || undefined,
+      }),
     });
     setSavingLog(false);
-    setLogEx(""); setLogWeight(""); setLogReps("");
+    setLogQuery(""); setLogExId(null); setShowExList(false);
+    setLogWeight(""); setLogReps("");
     setShowLogModal(false);
-    loadAll(session.id);
+    loadAll(session.id, true);   // silent → no scroll jump
   };
 
   /* ── Derived data ── */
@@ -582,13 +589,56 @@ export default function MemberProgress({ gymSlug, embedded = false }: { gymSlug:
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "20px" }}>
-              <div>
+              {/* Searchable exercise picker */}
+              <div style={{ position: "relative" }}>
                 <label className="gymos-label">Ejercicio</label>
-                <select className="gymos-select" value={logEx} onChange={e => setLogEx(e.target.value)}>
-                  <option value="">Elegí un ejercicio</option>
-                  {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-                </select>
+                <input
+                  type="text"
+                  className="gymos-input"
+                  placeholder="Buscá o escribí un ejercicio..."
+                  value={logQuery}
+                  onChange={e => { setLogQuery(e.target.value); setLogExId(null); setShowExList(true); }}
+                  onFocus={() => setShowExList(true)}
+                  autoComplete="off"
+                />
+                {showExList && logQuery.trim().length > 0 && (() => {
+                  const q = logQuery.trim().toLowerCase();
+                  const matches = exercises.filter(ex => ex.name.toLowerCase().includes(q)).slice(0, 8);
+                  const exact = exercises.some(ex => ex.name.toLowerCase() === q);
+                  return (
+                    <div style={{
+                      position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20,
+                      marginTop: "4px", maxHeight: "240px", overflowY: "auto",
+                      background: "var(--bg-elevated)", border: "1px solid var(--border-default)",
+                      borderRadius: "12px", boxShadow: "var(--shadow-elevated)",
+                    }}>
+                      {matches.map(ex => (
+                        <button key={ex.id} type="button"
+                          onClick={() => { setLogExId(ex.id); setLogQuery(ex.name); setShowExList(false); }}
+                          style={{ width: "100%", textAlign: "left", padding: "12px 14px", background: "none", border: "none", borderBottom: "1px solid var(--border-subtle)", cursor: "pointer", fontSize: "15px", color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
+                          {ex.name}
+                        </button>
+                      ))}
+                      {!exact && (
+                        <button type="button"
+                          onClick={() => { setLogExId(null); setShowExList(false); }}
+                          style={{ width: "100%", textAlign: "left", padding: "12px 14px", background: "none", border: "none", cursor: "pointer", fontSize: "15px", color: "var(--lime)", fontWeight: 700, fontFamily: "var(--font-display)", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Plus size={16} /> Usar "{logQuery.trim()}"
+                        </button>
+                      )}
+                      {matches.length === 0 && exact && (
+                        <p style={{ padding: "12px 14px", fontSize: "14px", color: "var(--text-muted)", margin: 0 }}>Sin resultados</p>
+                      )}
+                    </div>
+                  );
+                })()}
+                {logExId === null && logQuery.trim() && !showExList && (
+                  <p style={{ fontSize: "12px", color: "var(--lime)", margin: "6px 0 0", fontWeight: 600 }}>
+                    Se guardará como ejercicio nuevo: "{logQuery.trim()}"
+                  </p>
+                )}
               </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
                   <label className="gymos-label">Peso (kg)</label>
@@ -603,9 +653,9 @@ export default function MemberProgress({ gymSlug, embedded = false }: { gymSlug:
 
             <button
               onClick={saveManualLog}
-              disabled={savingLog || !logEx || !logWeight}
+              disabled={savingLog || !logQuery.trim() || !logWeight}
               className="gymos-btn gymos-btn-primary gymos-btn-full"
-              style={{ letterSpacing: "0.04em", textTransform: "uppercase", opacity: (!logEx || !logWeight) ? 0.5 : 1 }}
+              style={{ letterSpacing: "0.04em", textTransform: "uppercase", opacity: (!logQuery.trim() || !logWeight) ? 0.5 : 1 }}
             >
               {savingLog ? <Loader2 size={18} style={{ animation: "spin 0.7s linear infinite" }} /> : "Guardar peso"}
             </button>
