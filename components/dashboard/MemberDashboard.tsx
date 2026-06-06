@@ -16,6 +16,10 @@ const MemberProgress = dynamic(() => import("./MemberProgress"), {
   loading: () => <div style={{ padding: "60px 0", display: "flex", justifyContent: "center" }}><GymLoader /></div>,
 });
 
+const WEEKDAY_NAMES: Record<number, string> = {
+  1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 7: "Domingo",
+};
+
 interface MemberSession {
   id: string;
   name: string;
@@ -284,16 +288,61 @@ export default function MemberDashboard({ gymSlug }: Props) {
             {/* Rest day (routine exists but today isn't a training day) */}
             {routine && !todayDay && (
               <div style={{
-                padding: "32px 24px", borderRadius: "20px", textAlign: "center",
+                padding: "28px 22px", borderRadius: "20px",
                 background: "var(--bg-card)", border: "1px solid var(--border-subtle)",
               }}>
-                <Clock size={36} color="var(--lime)" strokeWidth={1.5} style={{ margin: "0 auto 12px" }} />
-                <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)", fontSize: "17px", marginBottom: "8px" }}>
-                  Hoy es día de descanso
-                </h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6 }}>
-                  Tu rutina <strong style={{ color: "var(--text-primary)" }}>{routine.name}</strong> no tiene entrenamiento para hoy. Aprovechá para recuperar.
-                </p>
+                <div style={{ textAlign: "center" }}>
+                  <Clock size={36} color="var(--lime)" strokeWidth={1.5} style={{ margin: "0 auto 12px" }} />
+                  <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-primary)", fontSize: "17px", marginBottom: "8px" }}>
+                    Hoy es día de descanso
+                  </h3>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "16px", lineHeight: 1.6, margin: 0 }}>
+                    Tu rutina <strong style={{ color: "var(--text-primary)" }}>{routine.name}</strong> no tiene entrenamiento para hoy.
+                  </p>
+                </div>
+
+                {/* Pick a day to make up a missed workout */}
+                {(routine.routine_days ?? []).length > 0 && (
+                  <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid var(--border-subtle)" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", margin: "0 0 4px" }}>
+                      ¿Querés entrenar igual?
+                    </p>
+                    <p style={{ fontSize: "14px", color: "var(--text-secondary)", margin: "0 0 14px", lineHeight: 1.5 }}>
+                      Si faltaste un día, elegí qué rutina hacer para reponerlo:
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {[...(routine.routine_days ?? [])]
+                        .sort((a: RoutineDay, b: RoutineDay) => a.day_number - b.day_number)
+                        .map((d: RoutineDay) => (
+                          <button
+                            key={d.id}
+                            onClick={() => router.push(`/gym/${gymSlug}/dashboard/member/workout?day=${d.day_number}`)}
+                            style={{
+                              width: "100%", display: "flex", alignItems: "center", gap: "12px",
+                              padding: "14px 16px", borderRadius: "12px", cursor: "pointer",
+                              background: "var(--bg-elevated)", border: "1px solid var(--border-default)",
+                              textAlign: "left", transition: "border-color 0.2s",
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--lime)")}
+                            onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-default)")}
+                          >
+                            <div style={{ width: "40px", height: "40px", borderRadius: "10px", flexShrink: 0, background: "var(--lime-dim)", border: "1px solid rgba(158,255,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Dumbbell size={18} color="var(--lime)" />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", margin: 0 }}>
+                                {d.name ?? `Día ${d.day_number}`}
+                              </p>
+                              <p style={{ fontSize: "13px", color: "var(--text-muted)", margin: "2px 0 0" }}>
+                                {WEEKDAY_NAMES[d.day_number] ?? ""} · {(d.routine_exercises ?? []).length} ejercicios
+                              </p>
+                            </div>
+                            <Play size={18} color="var(--lime)" fill="currentColor" />
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

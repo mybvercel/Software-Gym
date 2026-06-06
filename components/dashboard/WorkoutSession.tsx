@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ExerciseVideo } from "@/components/exercises/ExerciseDetail";
 import {
@@ -74,6 +74,8 @@ const MG_LABEL: Record<string, string> = {
 export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedDayParam = searchParams.get("day"); // optional: train a specific day
 
   const [session, setSession]           = useState<MemberSession | null>(null);
   const [exercises, setExercises]       = useState<RoutineExercise[]>([]);
@@ -146,10 +148,11 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       const days = (routine.routine_days ?? []) as any[];
       if (days.length === 0) { setIsLoading(false); return; }
 
-      // day_number = ISO weekday (1=Mon … 7=Sun) en hora de Córdoba.
-      const todayISO = arWeekday();
+      // Train a specific day if one was chosen (e.g. making up a missed day),
+      // otherwise today's day by weekday (Córdoba).
+      const targetDayNum = selectedDayParam ? parseInt(selectedDayParam, 10) : arWeekday();
       const sorted = [...days].sort((a, b) => a.day_number - b.day_number);
-      const today = sorted.find(d => d.day_number === todayISO) ?? sorted[0];
+      const today = sorted.find(d => d.day_number === targetDayNum) ?? sorted[0];
 
       setDayName(today.name ?? `Día ${today.day_number}`);
 
