@@ -2,49 +2,68 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, ArrowLeft, X } from "lucide-react";
+import {
+  Dumbbell, Home, Play, TrendingUp, ClipboardList, CheckCircle,
+  ArrowRight, ArrowLeft, X,
+} from "lucide-react";
 
 interface Slide {
   img: string;
   alt: string;
+  icon: React.ReactNode;
+  anim: string;
   title: string;
   body: string;
 }
+
+const ICON_SIZE = 28;
 
 const SLIDES: Slide[] = [
   {
     img: "/tutorial/slide1.png",
     alt: "Personaje saludando, dándote la bienvenida",
+    icon: <Dumbbell size={ICON_SIZE} color="var(--lime)" strokeWidth={2.2} />,
+    anim: "gymosIconWiggle 2.4s ease-in-out infinite",
     title: "Bienvenido a GymOS",
     body: "Tu entrenamiento, organizado y simple. Te muestro cómo funciona en 30 segundos.",
   },
   {
     img: "/tutorial/slide2.png",
     alt: "Personaje mirando su rutina del día en el celular",
+    icon: <Home size={ICON_SIZE} color="var(--lime)" strokeWidth={2.2} />,
+    anim: "gymosIconPop 2.2s ease-in-out infinite",
     title: "Tu día de entrenamiento",
     body: "En la pestaña Inicio ves qué músculo te toca hoy y tu rutina. Si es día de descanso, también te avisa.",
   },
   {
     img: "/tutorial/slide3.png",
     alt: "Personaje entrenando siguiendo un video",
+    icon: <Play size={ICON_SIZE} color="var(--lime)" strokeWidth={2.2} />,
+    anim: "gymosIconPop 1.8s ease-in-out infinite",
     title: "Entrená con videos",
     body: "Tocá «Empezar entrenamiento». Cada ejercicio tiene video, fotos e instrucciones. Marcá cada serie y el descanso arranca solo.",
   },
   {
     img: "/tutorial/slide4.png",
     alt: "Personaje flexionando el brazo junto a un gráfico de progreso",
+    icon: <TrendingUp size={ICON_SIZE} color="var(--lime)" strokeWidth={2.2} />,
+    anim: "gymosIconRise 2.2s ease-in-out infinite",
     title: "Mirá tu progreso",
     body: "Registrá cuánto levantás en cada ejercicio y mirá tu evolución semana a semana, junto con tu calendario de asistencia.",
   },
   {
     img: "/tutorial/slide5.png",
     alt: "Personaje completando su perfil y preferencias",
+    icon: <ClipboardList size={ICON_SIZE} color="var(--lime)" strokeWidth={2.2} />,
+    anim: "gymosIconWiggle 2.6s ease-in-out infinite",
     title: "Tu perfil",
     body: "Completá tu cuestionario de salud para que tu profe te arme el plan ideal. Podés dejarle comentarios y cambiar a modo claro.",
   },
   {
     img: "/tutorial/slide6.png",
     alt: "Personaje festejando, listo para arrancar",
+    icon: <CheckCircle size={ICON_SIZE} color="var(--lime)" strokeWidth={2.2} />,
+    anim: "gymosIconPop 2s ease-in-out infinite",
     title: "¡Listo para arrancar!",
     body: "Eso es todo. Cualquier duda, escribile a tu profe desde tu perfil. ¡A entrenar!",
   },
@@ -98,7 +117,6 @@ export default function Tutorial({ onFinish }: { onFinish: () => void }) {
           boxShadow: "0 18px 50px -18px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.02)",
           overflow: "hidden",
           marginBottom: "clamp(24px, 5vh, 36px)",
-          animation: "gymosFloat 4.5s ease-in-out infinite",
         }}>
           <Image
             src={s.img}
@@ -108,6 +126,23 @@ export default function Tutorial({ onFinish }: { onFinish: () => void }) {
             sizes="(max-width: 480px) 56vw, 248px"
             style={{ objectFit: "contain", padding: "6px" }}
           />
+
+          {/* Ícono animado superpuesto, esquina superior izquierda */}
+          <div style={{
+            position: "absolute", top: "12px", left: "12px", zIndex: 2,
+            width: "clamp(44px, 13vw, 54px)", height: "clamp(44px, 13vw, 54px)",
+            borderRadius: "16px",
+            background: "rgba(13,17,23,0.72)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+            border: "1.5px solid rgba(158,255,0,0.4)",
+            boxShadow: "0 6px 18px -6px rgba(0,0,0,0.6), 0 0 18px -4px rgba(158,255,0,0.35)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span key={i} style={{ display: "flex", animation: s.anim }}>
+              {s.icon}
+            </span>
+          </div>
         </div>
 
         <h1 style={{
