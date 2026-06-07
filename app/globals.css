@@ -223,6 +223,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 .gymos-select option { background: var(--bg-elevated); color: var(--text-primary); }
 
+/* Compact variant for tight rows (e.g. day / month / year on mobile)
+   so the value never gets clipped ("196" instead of "1960"). */
+.gymos-select-compact {
+  padding: 0 24px 0 10px;
+  font-size: 0.95rem;
+  background-position: right 7px center;
+  text-overflow: ellipsis;
+}
+@media (max-width: 360px) {
+  .gymos-select-compact { padding: 0 20px 0 8px; font-size: 0.875rem; }
+}
+
 /* ============================================================
    BUTTON SYSTEM
    ============================================================ */

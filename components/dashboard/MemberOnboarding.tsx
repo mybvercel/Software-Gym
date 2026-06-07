@@ -115,20 +115,20 @@ export default function MemberOnboarding({ gymSlug }: Props) {
         {step === 1 && (
           <>
             <Card title="Fecha de nacimiento">
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: "8px" }}>
-                <select className="gymos-select" value={bDay} onChange={e => setBDay(e.target.value)}>
+              <div style={{ display: "grid", gridTemplateColumns: "0.8fr 1.25fr 1fr", gap: "7px" }}>
+                <select className="gymos-select gymos-select-compact" value={bDay} onChange={e => setBDay(e.target.value)}>
                   <option value="">Día</option>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
                     <option key={d} value={String(d)}>{d}</option>
                   ))}
                 </select>
-                <select className="gymos-select" value={bMonth} onChange={e => setBMonth(e.target.value)}>
+                <select className="gymos-select gymos-select-compact" value={bMonth} onChange={e => setBMonth(e.target.value)}>
                   <option value="">Mes</option>
                   {["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"].map((m, i) => (
                     <option key={m} value={String(i + 1)}>{m}</option>
                   ))}
                 </select>
-                <select className="gymos-select" value={bYear} onChange={e => setBYear(e.target.value)}>
+                <select className="gymos-select gymos-select-compact" value={bYear} onChange={e => setBYear(e.target.value)}>
                   <option value="">Año</option>
                   {Array.from({ length: 84 }, (_, i) => new Date().getFullYear() - 10 - i).map(y => (
                     <option key={y} value={String(y)}>{y}</option>
@@ -138,7 +138,7 @@ export default function MemberOnboarding({ gymSlug }: Props) {
             </Card>
 
             <Card title="Género">
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "7px" }}>
                 {[
                   { v: "male",   l: "Masculino" },
                   { v: "female", l: "Femenino" },
@@ -148,10 +148,11 @@ export default function MemberOnboarding({ gymSlug }: Props) {
                     key={v}
                     onClick={() => setGender(v)}
                     style={{
-                      flex: 1, height: "42px", borderRadius: "10px", cursor: "pointer",
+                      minHeight: "52px", padding: "8px 6px", borderRadius: "10px", cursor: "pointer",
+                      display: "inline-flex", alignItems: "center", justifyContent: "center", textAlign: "center",
                       border: `1.5px solid ${gender === v ? "var(--lime)" : "var(--border-default)"}`,
                       background: gender === v ? "var(--lime-dim)" : "var(--bg-elevated)",
-                      fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "14px",
+                      fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "13.5px", lineHeight: 1.2,
                       color: gender === v ? "var(--lime)" : "var(--text-secondary)",
                     }}
                   >{l}</button>
