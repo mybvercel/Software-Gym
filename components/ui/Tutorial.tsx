@@ -1,45 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Dumbbell, Home, Play, TrendingUp, ClipboardList, CheckCircle,
-  ArrowRight, ArrowLeft, X,
-} from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, ArrowLeft, X } from "lucide-react";
 
 interface Slide {
-  icon: React.ReactNode;
+  img: string;
+  alt: string;
   title: string;
   body: string;
 }
 
 const SLIDES: Slide[] = [
   {
-    icon: <Dumbbell size={44} color="var(--lime)" strokeWidth={2} />,
+    img: "/tutorial/slide1.png",
+    alt: "Personaje saludando, dándote la bienvenida",
     title: "Bienvenido a GymOS",
     body: "Tu entrenamiento, organizado y simple. Te muestro cómo funciona en 30 segundos.",
   },
   {
-    icon: <Home size={44} color="var(--lime)" strokeWidth={2} />,
+    img: "/tutorial/slide2.png",
+    alt: "Personaje mirando su rutina del día en el celular",
     title: "Tu día de entrenamiento",
     body: "En la pestaña Inicio ves qué músculo te toca hoy y tu rutina. Si es día de descanso, también te avisa.",
   },
   {
-    icon: <Play size={44} color="var(--lime)" strokeWidth={2} />,
+    img: "/tutorial/slide3.png",
+    alt: "Personaje entrenando siguiendo un video",
     title: "Entrená con videos",
     body: "Tocá «Empezar entrenamiento». Cada ejercicio tiene video, fotos e instrucciones. Marcá cada serie y el descanso arranca solo.",
   },
   {
-    icon: <TrendingUp size={44} color="var(--lime)" strokeWidth={2} />,
+    img: "/tutorial/slide4.png",
+    alt: "Personaje flexionando el brazo junto a un gráfico de progreso",
     title: "Mirá tu progreso",
     body: "Registrá cuánto levantás en cada ejercicio y mirá tu evolución semana a semana, junto con tu calendario de asistencia.",
   },
   {
-    icon: <ClipboardList size={44} color="var(--lime)" strokeWidth={2} />,
+    img: "/tutorial/slide5.png",
+    alt: "Personaje completando su perfil y preferencias",
     title: "Tu perfil",
     body: "Completá tu cuestionario de salud para que tu profe te arme el plan ideal. Podés dejarle comentarios y cambiar a modo claro.",
   },
   {
-    icon: <CheckCircle size={44} color="var(--lime)" strokeWidth={2} />,
+    img: "/tutorial/slide6.png",
+    alt: "Personaje festejando, listo para arrancar",
     title: "¡Listo para arrancar!",
     body: "Eso es todo. Cualquier duda, escribile a tu profe desde tu perfil. ¡A entrenar!",
   },
@@ -84,12 +89,25 @@ export default function Tutorial({ onFinish }: { onFinish: () => void }) {
         animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)",
       }}>
         <div style={{
-          width: "110px", height: "110px", borderRadius: "28px",
-          background: "var(--lime-dim)", border: "1.5px solid rgba(158,255,0,0.25)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          marginBottom: "32px",
+          position: "relative",
+          width: "clamp(180px, 56vw, 248px)",
+          aspectRatio: "1 / 1",
+          borderRadius: "32px",
+          background: "radial-gradient(circle at 50% 32%, #1b2532 0%, #0e1117 78%)",
+          border: "1.5px solid rgba(158,255,0,0.28)",
+          boxShadow: "0 18px 50px -18px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.02)",
+          overflow: "hidden",
+          marginBottom: "clamp(24px, 5vh, 36px)",
+          animation: "gymosFloat 4.5s ease-in-out infinite",
         }}>
-          {s.icon}
+          <Image
+            src={s.img}
+            alt={s.alt}
+            fill
+            priority={i === 0}
+            sizes="(max-width: 480px) 56vw, 248px"
+            style={{ objectFit: "contain", padding: "6px" }}
+          />
         </div>
 
         <h1 style={{
