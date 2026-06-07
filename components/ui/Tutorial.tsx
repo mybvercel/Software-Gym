@@ -101,11 +101,10 @@ export default function Tutorial({ onFinish }: { onFinish: () => void }) {
       </div>
 
       {/* Slide */}
-      <div key={i} style={{
+      <div style={{
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         textAlign: "center", padding: "20px 28px",
-        animation: "fadeUp 0.4s cubic-bezier(0.16,1,0.3,1)",
       }}>
         <div style={{
           position: "relative",
@@ -118,14 +117,26 @@ export default function Tutorial({ onFinish }: { onFinish: () => void }) {
           overflow: "hidden",
           marginBottom: "clamp(24px, 5vh, 36px)",
         }}>
-          <Image
-            src={s.img}
-            alt={s.alt}
-            fill
-            priority={i === 0}
-            sizes="(max-width: 480px) 56vw, 248px"
-            style={{ objectFit: "contain", padding: "6px" }}
-          />
+          {/* Shimmer de fondo mientras carga la primera imagen */}
+          <div className="gymos-shimmer" style={{ position: "absolute", inset: 0, zIndex: 0 }} />
+
+          {/* Las 6 imágenes se precargan todas; se hace crossfade entre ellas */}
+          {SLIDES.map((slide, idx) => (
+            <Image
+              key={slide.img}
+              src={slide.img}
+              alt={slide.alt}
+              fill
+              priority={idx === 0}
+              loading={idx === 0 ? undefined : "eager"}
+              sizes="(max-width: 480px) 56vw, 248px"
+              style={{
+                objectFit: "contain", padding: "6px", zIndex: 1,
+                opacity: idx === i ? 1 : 0,
+                transition: "opacity 0.4s ease",
+              }}
+            />
+          ))}
 
           {/* Ícono animado superpuesto, esquina superior izquierda */}
           <div style={{
@@ -145,19 +156,21 @@ export default function Tutorial({ onFinish }: { onFinish: () => void }) {
           </div>
         </div>
 
-        <h1 style={{
-          fontFamily: "var(--font-display)", fontWeight: 800,
-          fontSize: "clamp(26px, 7vw, 32px)", color: "var(--text-primary)",
-          letterSpacing: "-0.02em", margin: "0 0 16px", maxWidth: "420px",
-        }}>
-          {s.title}
-        </h1>
-        <p style={{
-          fontSize: "18px", lineHeight: 1.65, color: "var(--text-secondary)",
-          margin: 0, maxWidth: "440px", fontWeight: 500,
-        }}>
-          {s.body}
-        </p>
+        <div key={i} style={{ animation: "fadeUp 0.35s cubic-bezier(0.16,1,0.3,1)" }}>
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontWeight: 800,
+            fontSize: "clamp(26px, 7vw, 32px)", color: "var(--text-primary)",
+            letterSpacing: "-0.02em", margin: "0 0 16px", maxWidth: "420px",
+          }}>
+            {s.title}
+          </h1>
+          <p style={{
+            fontSize: "18px", lineHeight: 1.65, color: "var(--text-secondary)",
+            margin: 0, maxWidth: "440px", fontWeight: 500,
+          }}>
+            {s.body}
+          </p>
+        </div>
       </div>
 
       {/* Progress dots */}
