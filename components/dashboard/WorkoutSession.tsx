@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import BackButton from "@/components/ui/BackButton";
 import GymLoader from "@/components/ui/GymLoader";
-import { arWeekday } from "@/lib/datetime";
+import { arWeekday, arDateOnly } from "@/lib/datetime";
 
 /* ─────────────────────────────────────────────────────────────
    Types
@@ -88,9 +88,15 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
   const [completed, setCompleted]       = useState<Record<string, CompletedEntry>>({});
   const [savingId, setSavingId]         = useState<string | null>(null);
   const [logs, setLogs]                 = useState<Record<string, LogState>>({});
+  const [setsDone, setSetsDone]         = useState<Record<string, number>>({});
 
-  const [startTime]                     = useState(() => Date.now());
+  const [startTime, setStartTime]       = useState(() => Date.now());
   const [allDone, setAllDone]           = useState(false);
+
+  // Key under which this session's progress is cached in localStorage,
+  // so leaving the screen ("Volver") and coming back resumes where you left off.
+  const [progressKey, setProgressKey]   = useState<string | null>(null);
+  const progressKeyRef                  = useRef<string | null>(null);
 
   // Session feedback
   const [mood, setMood]                 = useState<string>("");
@@ -109,6 +115,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       const raw = localStorage.getItem("gymos_member");
       const id = raw ? (JSON.parse(raw) as MemberSession).id : "";
       if (id) markSession("end", id);
+      clearSavedProgress();
       setAutoClosed(true);
       setAllDone(true);
       setFeedbackSaved(true);
@@ -165,7 +172,34 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       exs.forEach((re: RoutineExercise) => {
         defaultLogs[re.id] = { weight_kg: "", reps_done: re.reps, effort: 7, notes: "" };
       });
-      setLogs(defaultLogs);
+
+      // Restore any in-progress session for this same day (survives "Volver").
+      const key = `gymos_workout:${memberId}:${targetDayNum}:${arDateOnly()}`;
+      setProgressKey(key);
+      progressKeyRef.current = key;
+      let restoredLogs = defaultLogs;
+      try {
+        const savedRaw = localStorage.getItem(key);
+        if (savedRaw) {
+          const saved = JSON.parse(savedRaw) as {
+            startTime?: number;
+            completed?: Record<string, CompletedEntry>;
+            logs?: Record<string, LogState>;
+            setsDone?: Record<string, number>;
+          };
+          if (saved.startTime) setStartTime(saved.startTime);
+          if (saved.completed) {
+            setCompleted(saved.completed);
+            // Everything was already done → go straight to the finish screen.
+            if (exs.length > 0 && Object.keys(saved.completed).length === exs.length) {
+              setAllDone(true);
+            }
+          }
+          if (saved.setsDone) setSetsDone(saved.setsDone);
+          if (saved.logs) restoredLogs = { ...defaultLogs, ...saved.logs };
+        }
+      } catch { /* ignore corrupt cache */ }
+      setLogs(restoredLogs);
 
       // Mark this member as actively training (live count for the trainer)
       if (exs.length > 0) markSession("start", memberId, today.name ?? "");
@@ -193,6 +227,19 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       }
     };
   }, []);
+
+  /* ── Persist in-progress session to localStorage (resume after "Volver") ── */
+  useEffect(() => {
+    if (!progressKey || isLoading || feedbackSaved) return;
+    try {
+      localStorage.setItem(progressKey, JSON.stringify({ startTime, completed, logs, setsDone }));
+    } catch { /* storage full / unavailable */ }
+  }, [progressKey, isLoading, feedbackSaved, startTime, completed, logs, setsDone]);
+
+  const clearSavedProgress = () => {
+    const k = progressKeyRef.current;
+    if (k) { try { localStorage.removeItem(k); } catch {} }
+  };
 
   /* ── Save progress ── */
   const markDone = async (re: RoutineExercise) => {
@@ -260,6 +307,7 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
       });
     } finally {
       markSession("end", session.id);   // no longer training
+      clearSavedProgress();             // session finished → drop the cache
       setSavingFeedback(false);
       setFeedbackSaved(true);
     }
@@ -428,6 +476,8 @@ export default function WorkoutSession({ gymSlug }: { gymSlug: string }) {
                 isExpanded={isExpanded}
                 isSaving={savingId === re.id}
                 log={log}
+                setsDone={setsDone[re.id] ?? 0}
+                onSetsDoneChange={(n) => setSetsDone(prev => ({ ...prev, [re.id]: n }))}
                 onToggle={() => setExpandedId(isExpanded ? null : re.id)}
                 onLogChange={(patch) => setLogs(prev => ({ ...prev, [re.id]: { ...prev[re.id], ...patch } }))}
                 onMarkDone={() => markDone(re)}
@@ -494,13 +544,15 @@ function TopBar({ gymSlug, dayName, doneCount, totalCount, pct }: {
    ExerciseAccordion — one card per exercise
 ───────────────────────────────────────────────────────────── */
 
-function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggle, onLogChange, onMarkDone }: {
+function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, setsDone, onSetsDoneChange, onToggle, onLogChange, onMarkDone }: {
   re: RoutineExercise;
   idx: number;
   isDone: boolean;
   isExpanded: boolean;
   isSaving: boolean;
   log: LogState;
+  setsDone: number;
+  onSetsDoneChange: (n: number) => void;
   onToggle: () => void;
   onLogChange: (patch: Partial<LogState>) => void;
   onMarkDone: () => void;
@@ -617,7 +669,7 @@ function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggl
           </div>
 
           {/* Set tracker with rest timer */}
-          <SetTracker sets={re.sets} restSeconds={re.rest_seconds} />
+          <SetTracker sets={re.sets} restSeconds={re.rest_seconds} done={setsDone} onDoneChange={onSetsDoneChange} />
 
           {/* Video / photo — photo shows instantly, video loads on tap */}
           {(ex.video_url || ex.thumbnail_url) ? (
@@ -686,8 +738,9 @@ function ExerciseAccordion({ re, idx, isDone, isExpanded, isSaving, log, onToggl
    SetTracker — one circle per set + auto rest countdown
 ───────────────────────────────────────────────────────────── */
 
-function SetTracker({ sets, restSeconds }: { sets: number; restSeconds: number }) {
-  const [done, setDone] = useState(0);
+function SetTracker({ sets, restSeconds, done, onDoneChange }: {
+  sets: number; restSeconds: number; done: number; onDoneChange: (n: number) => void;
+}) {
   const [rest, setRest] = useState(0);          // remaining rest seconds
   const [resting, setResting] = useState(false);
 
@@ -702,12 +755,12 @@ function SetTracker({ sets, restSeconds }: { sets: number; restSeconds: number }
   const tapSet = (i: number) => {
     if (i < done) {
       // un-mark this set and the ones after it
-      setDone(i);
+      onDoneChange(i);
       setResting(false);
       setRest(0);
     } else {
       // complete up to this set → start rest
-      setDone(i + 1);
+      onDoneChange(i + 1);
       setRest(restSeconds);
       setResting(restSeconds > 0);
     }
