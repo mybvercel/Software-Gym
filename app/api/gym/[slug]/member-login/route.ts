@@ -5,6 +5,7 @@ import {
   signSession, MEMBER_COOKIE, COOKIE_MAX_AGE,
   deriveMemberPassword, memberAuthEmail,
 } from "@/lib/session";
+import { cleanDisplayName } from "@/lib/names";
 
 export async function POST(
   request: NextRequest,
@@ -19,6 +20,7 @@ export async function POST(
       return NextResponse.json({ error: "Nombre y DNI son requeridos." }, { status: 400 });
 
     const cleanDNI = dni.replace(/\D/g, "").trim();
+    const cleanName = cleanDisplayName(full_name);
 
     // 1. Find gym
     const { data: gym } = await admin
@@ -53,20 +55,20 @@ export async function POST(
         email,
         password,
         email_confirm: true,
-        user_metadata: { full_name: full_name.trim(), role: "member" },
+        user_metadata: { full_name: cleanName, role: "member" },
       });
       if (authErr || !authUser?.user) {
         console.error("Member auth create error:", authErr?.message);
         return NextResponse.json({ error: "No se pudo crear tu perfil." }, { status: 500 });
       }
       await admin.from("profiles").update({
-        gym_id: gym.id, role: "member", full_name: full_name.trim(),
+        gym_id: gym.id, role: "member", full_name: cleanName,
         dni: cleanDNI, is_active: true, onboarding_completed: false,
         whatsapp_notifications: true,
       }).eq("id", authUser.user.id);
 
       profile = {
-        id: authUser.user.id, full_name: full_name.trim(),
+        id: authUser.user.id, full_name: cleanName,
         role: "member", is_active: true, onboarding_completed: false,
       };
     }

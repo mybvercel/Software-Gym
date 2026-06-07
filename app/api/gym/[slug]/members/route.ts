@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest } from "next/server";
 import { deriveMemberPassword, memberAuthEmail } from "@/lib/session";
 import { arDateOnly } from "@/lib/datetime";
+import { cleanDisplayName } from "@/lib/names";
 
 /**
  * Creates a member as a real Supabase Auth user.
@@ -110,7 +111,7 @@ export async function POST(
 
     for (const row of rows) {
       const dni = row.dni?.replace(/\D/g, "").trim();
-      const name = row.full_name?.trim();
+      const name = cleanDisplayName(row.full_name ?? "");
       if (!name || !dni || dni.length < 7) { errors.push(name || "sin nombre"); continue; }
 
       const result = await createMember(gym.id, name, dni, row.phone?.trim());
