@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Routine, RoutineDay, RoutineExercise } from "@/lib/types";
 import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
-import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper, Moon, Sun, MessageSquare, Send, Loader2 } from "lucide-react";
+import { Dumbbell, Clock, Home, ListChecks, TrendingUp, User, LogOut, ChevronRight, Check, Play, ClipboardList, PartyPopper, Moon, Sun, MessageSquare, Send, Loader2, Camera } from "lucide-react";
+import { fileToSquareJpeg } from "@/lib/image";
 import WorkoutCalendar from "./WorkoutCalendar";
 import GymLoader from "@/components/ui/GymLoader";
 import Tutorial from "@/components/ui/Tutorial";
@@ -51,6 +52,11 @@ export default function MemberDashboard({ gymSlug }: Props) {
     localStorage.setItem("gymos_tutorial_seen", "1");
     setShowTutorial(false);
   };
+
+  // Profile photo
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Theme + feedback
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -136,8 +142,38 @@ export default function MemberDashboard({ gymSlug }: Props) {
         .order("measured_at", { ascending: false })
         .limit(10);
       if (measureData) setMeasurements(measureData.reverse());
+
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", s.id)
+        .maybeSingle();
+      if (prof?.avatar_url) setAvatarUrl(prof.avatar_url);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Pick + compress + upload the profile photo
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // let the same file be re-picked later
+    if (!file || !session) return;
+    setAvatarUploading(true);
+    try {
+      const image = await fileToSquareJpeg(file, 400, 0.85);
+      const res = await fetch("/api/member/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: session.id, image }),
+      });
+      const json = await res.json();
+      if (res.ok && json.avatar_url) setAvatarUrl(json.avatar_url);
+      else alert(json.error || "No se pudo subir la foto.");
+    } catch {
+      alert("No se pudo procesar la imagen. Probá con otra.");
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -578,21 +614,71 @@ export default function MemberDashboard({ gymSlug }: Props) {
               border: "1px solid var(--border-subtle)", marginBottom: "16px",
               display: "flex", alignItems: "center", gap: "16px",
             }}>
-              <div style={{
-                width: "56px", height: "56px", borderRadius: "50%",
-                background: "var(--lime-dim)", border: "1px solid rgba(158,255,0,0.3)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "22px", color: "var(--lime)",
-              }}>
-                {firstName[0].toUpperCase()}
-              </div>
-              <div>
+              {/* Avatar — tap to add/change photo */}
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                aria-label="Cambiar foto de perfil"
+                style={{
+                  position: "relative", width: "72px", height: "72px", flexShrink: 0,
+                  borderRadius: "50%", padding: 0, cursor: avatarUploading ? "default" : "pointer",
+                  border: "1px solid rgba(158,255,0,0.3)", background: "var(--lime-dim)",
+                  display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+                }}
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt="Foto de perfil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "28px", color: "var(--lime)" }}>
+                    {firstName[0].toUpperCase()}
+                  </span>
+                )}
+
+                {/* Camera badge */}
+                <span style={{
+                  position: "absolute", bottom: "-2px", right: "-2px",
+                  width: "26px", height: "26px", borderRadius: "50%",
+                  background: "var(--lime)", border: "2px solid var(--bg-card)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Camera size={13} color="#000" strokeWidth={2.5} />
+                </span>
+
+                {/* Uploading overlay */}
+                {avatarUploading && (
+                  <span style={{
+                    position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Loader2 size={22} color="#fff" style={{ animation: "spin 0.7s linear infinite" }} />
+                  </span>
+                )}
+              </button>
+
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onPickAvatar}
+                style={{ display: "none" }}
+              />
+
+              <div style={{ minWidth: 0 }}>
                 <p style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "17px", color: "var(--text-primary)", margin: 0 }}>
                   {session?.name}
                 </p>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: "4px 0 0" }}>
-                  Miembro activo
-                </p>
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  style={{
+                    background: "none", border: "none", padding: 0, marginTop: "4px",
+                    cursor: avatarUploading ? "default" : "pointer", textAlign: "left",
+                    fontSize: "13px", color: "var(--lime)", fontWeight: 600, fontFamily: "var(--font-body)",
+                  }}
+                >
+                  {avatarUploading ? "Subiendo foto..." : avatarUrl ? "Cambiar foto" : "Agregar foto de perfil"}
+                </button>
               </div>
             </div>
 

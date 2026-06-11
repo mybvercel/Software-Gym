@@ -199,8 +199,13 @@ export default function MemberDetailPage() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: bgColor, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, fontWeight: 800, fontSize: "20px", color: "#fff", flexShrink: 0 }}>
-              {getInitials(member.full_name)}
+            <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: bgColor, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: T.font, fontWeight: 800, fontSize: "20px", color: "#fff", flexShrink: 0, overflow: "hidden" }}>
+              {member.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={member.avatar_url} alt={member.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                getInitials(member.full_name)
+              )}
             </div>
             <div>
               <h1 style={{ fontFamily: T.font, fontWeight: 800, fontSize: "20px", color: "#fff", margin: "0 0 3px", letterSpacing: "-0.01em" }}>

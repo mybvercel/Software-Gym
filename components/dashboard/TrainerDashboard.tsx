@@ -611,9 +611,14 @@ function MemberCard({ member: m, gymSlug, onAssignRoutine }: {
         background: bgColor,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: T.font, fontWeight: 800, fontSize: "15px", color: "#fff",
-        position: "relative",
+        position: "relative", overflow: "hidden",
       }}>
-        {getInitials(m.full_name)}
+        {m.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={m.avatar_url} alt={m.full_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          getInitials(m.full_name)
+        )}
         {/* Activity dot */}
         <span style={{
           position: "absolute", bottom: "1px", right: "1px",
